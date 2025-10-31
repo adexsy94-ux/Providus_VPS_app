@@ -559,6 +559,7 @@ if run:
 with tab1:
     st.markdown("### How to Use This App")
     steps = [
+        ("Make sure your Providus Bank account statement has a column header on row 1"),
         ("Upload Files", "Drag & drop **PROVIDUS** and **VPS** files (.csv, .xlsx, .xls)"),
         ("Map Columns", "Adjust column names if needed (e.g., 'Credit Amount')"),
         ("Run Reconciliation", "Click **Run Reconciliation** – wait for progress bar"),
@@ -607,3 +608,4 @@ with tab4:
         st.info("Run reconciliation first.")
 
 st.caption("Providus VPS Recon | Perfect Dark Mode | Popup-Proof Links | Fully Responsive")
+
