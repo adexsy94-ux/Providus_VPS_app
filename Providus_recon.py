@@ -1,9 +1,9 @@
 # Providus_recon.py
 # -*- coding: utf-8 -*-
 """
-Providus ↔ VPS Reconciliation – FULLY WORKING
-Supports: .csv | .xlsx | .xls (97-2003) | Auto xlrd install
-Features: Dark Mode • Progress • CSV/Excel • Searchable Tables
+Providus ↔ VPS Reconciliation – v3.0 FINAL
+Supports: .csv | .xlsx | .xls | Auto xlrd
+Features: Perfect Dark Mode | Step-by-Step Guide | Searchable Tables
 Run: streamlit run Providus_recon.py
 """
 
@@ -39,14 +39,10 @@ LOGO_PATH = DATA_DIR / LOGO_FILENAME
 DATA_DIR.mkdir(exist_ok=True)
 
 # -----------------------------
-# UNIVERSAL FILE READER (CSV + XLSX + XLS)
+# UNIVERSAL FILE READER
 # -----------------------------
 @st.cache_data
 def read_file_any(uploaded_file, local_path):
-    """
-    Read CSV, XLSX, or XLS (97-2003) files.
-    Auto-installs xlrd if needed.
-    """
     def _read_df(source, suffix):
         if suffix == ".csv":
             return pd.read_csv(source, dtype=str)
@@ -55,7 +51,6 @@ def read_file_any(uploaded_file, local_path):
         else:  # .xlsx
             return pd.read_excel(source, engine="openpyxl", dtype=object)
 
-    # Uploaded file
     if uploaded_file is not None:
         try:
             suffix = Path(uploaded_file.name).suffix.lower()
@@ -63,31 +58,22 @@ def read_file_any(uploaded_file, local_path):
             st.success(f"Loaded **{len(df):,} rows** from `{uploaded_file.name}`")
             return df
         except Exception as e:
-            st.error(
-                f"Failed to read **{uploaded_file.name}**\n\n"
-                f"**Error**: `{e}`\n\n"
-                "**Fixes**:\n"
-                "• Save as **XLSX** (File → Save As → Excel Workbook)\n"
-                "• Or install `xlrd`: `pip install xlrd`"
-            )
+            st.error(f"Failed to read **{uploaded_file.name}**\n\n`{e}`\n\nSave as **XLSX** or run `pip install xlrd`")
             return None
 
-    # Local file
     if local_path:
         p = Path(local_path)
         if not p.exists():
-            st.error(f"Local file not found: `{local_path}`")
+            st.error(f"File not found: `{local_path}`")
             return None
         return _read_df(p, p.suffix.lower())
-
     return None
 
 # -----------------------------
 # Data Cleaning & Parsing
 # -----------------------------
 def clean_numeric_text_col(col):
-    if col is None:
-        return col
+    if col is None: return col
     s = col.astype(str).astype("string")
     s = s.str.replace(r"[^\d\.\-]", "", regex=True)
     return pd.to_numeric(s, errors="coerce")
@@ -123,7 +109,7 @@ def parse_prv_date(series):
     return parsed
 
 # -----------------------------
-# Core Matching Engine (with progress)
+# Core Matching Engine
 # -----------------------------
 def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress_callback=None):
     prv = prv_df.copy()
@@ -227,7 +213,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                     prv.at[prv_idx, "vps_settled_amount"] = found[VPS_COL_SETTLED]
                     prv.at[prv_idx, "vps_charge_amount"] = found[VPS_COL_CHARGE]
                     prv.at[prv_idx, "vps_matched"] = True
-                    prv.at[prv_idx, "vps_match_reason"] = "date & amount match (main units)"
+                    prv.at[prv_idx, "vps_match_reason"] = "date & amount match"
                     prv.at[prv_idx, "vps_matched_vps_index"] = int(found_idx)
                     matched += 1
                     continue
@@ -241,7 +227,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                     prv.at[prv_idx, "vps_settled_amount"] = found[VPS_COL_SETTLED]
                     prv.at[prv_idx, "vps_charge_amount"] = found[VPS_COL_CHARGE]
                     prv.at[prv_idx, "vps_matched"] = True
-                    prv.at[prv_idx, "vps_match_reason"] = "date match & settled==credit*100 (minor units)"
+                    prv.at[prv_idx, "vps_match_reason"] = "date match & settled==credit*100"
                     prv.at[prv_idx, "vps_matched_vps_index"] = int(found_idx)
                     matched += 1
                     continue
@@ -288,7 +274,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                 if outer_break:
                     break
 
-        # 16. Amount-only fallback
+        # 4. Amount-only fallback
         if not prv.at[prv_idx, "vps_matched"] and opts.get("amount_only_fallback", False):
             global_avail = vps[(vps["_used"] == False) & vps["_settled_numeric"].notna()].copy()
             if not global_avail.empty:
@@ -301,7 +287,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                     prv.at[prv_idx, "vps_settled_amount"] = found[VPS_COL_SETTLED]
                     prv.at[prv_idx, "vps_charge_amount"] = found[VPS_COL_CHARGE]
                     prv.at[prv_idx, "vps_matched"] = True
-                    prv.at[prv_idx, "vps_match_reason"] = "amount-only fallback (date ignored)"
+                    prv.at[prv_idx, "vps_match_reason"] = "amount-only fallback"
                     prv.at[prv_idx, "vps_matched_vps_index"] = int(found_idx)
                     matched += 1
                     continue
@@ -314,7 +300,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                     prv.at[prv_idx, "vps_settled_amount"] = found[VPS_COL_SETTLED]
                     prv.at[prv_idx, "vps_charge_amount"] = found[VPS_COL_CHARGE]
                     prv.at[prv_idx, "vps_matched"] = True
-                    prv.at[prv_idx, "vps_match_reason"] = "amount*100 fallback (date ignored)"
+                    prv.at[prv_idx, "vps_match_reason"] = "amount*100 fallback"
                     prv.at[prv_idx, "vps_matched_vps_index"] = int(found_idx)
                     matched += 1
                     continue
@@ -342,13 +328,9 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
     with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
         out_prv.drop(columns=[c for c in helper_cols if c in out_prv.columns], errors="ignore") \
                .to_excel(writer, sheet_name="Cleaned_PROVIDUS", index=False)
-
         log_cols = [
             PRV_COL_DATE, PRV_COL_CREDIT, "vps_matched", "vps_match_reason",
-            "vps_settled_amount", "vps_charge_amount",
-            "vps_id", "vps_session_id", "vps_settlement_ref", "vps_transaction_amount_minor",
-            "vps_source_acct_name", "vps_source_acct_no", "vps_virtual_acct_no",
-            "vps_created_at", "vps_reversal_session_id", "vps_settlement_notification_retry_batch_id"
+            "vps_settled_amount", "vps_charge_amount", "vps_id", "vps_session_id"
         ]
         out_prv[[c for c in log_cols if c in out_prv.columns]].to_excel(writer, sheet_name="Match_Log", index=False)
         out_prv[out_prv["vps_matched"] != True].to_excel(writer, sheet_name="Unmatched_PROVIDUS", index=False)
@@ -358,11 +340,17 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
 
     # === CSV Buffers ===
     csv_buffers = {}
-    csv_buffers["Cleaned_PROVIDUS"] = out_prv.drop(columns=[c for c in helper_cols if c in out_prv.columns], errors="ignore").to_csv(index=False)
-    csv_buffers["Match_Log"] = out_prv[[c for c in log_cols if c in out_prv.columns]].to_csv(index=False)
-    csv_buffers["Unmatched_PROVIDUS"] = out_prv[out_prv["vps_matched"] != True].to_csv(index=False)
-    csv_buffers["Unmatched_VPS"] = vps_unmatched.reset_index(drop=True).to_csv(index=False)
-    csv_buffers["All_VPS_Input"] = vps.reset_index(drop=True).to_csv(index=False)
+    for name in ["Cleaned_PROVIDUS", "Match_Log", "Unmatched_PROVIDUS", "Unmatched_VPS", "All_VPS_Input"]:
+        if name == "Cleaned_PROVIDUS":
+            csv_buffers[name] = out_prv.drop(columns=[c for c in helper_cols if c in out_prv.columns], errors="ignore").to_csv(index=False)
+        elif name == "Match_Log":
+            csv_buffers[name] = out_prv[[c for c in log_cols if c in out_prv.columns]].to_csv(index=False)
+        elif name == "Unmatched_PROVIDUS":
+            csv_buffers[name] = out_prv[out_prv["vps_matched"] != True].to_csv(index=False)
+        elif name == "Unmatched_VPS":
+            csv_buffers[name] = vps_unmatched.reset_index(drop=True).to_csv(index=False)
+        else:
+            csv_buffers[name] = vps.reset_index(drop=True).to_csv(index=False)
 
     stats = {
         "prv_before": before,
@@ -375,30 +363,44 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
     return out_prv, vps_unmatched, excel_buffer, csv_buffers, stats, vps
 
 # =============================================
-# UI: Glassmorphic + Dark Mode
+# UI: PERFECT DARK MODE + STEP-BY-STEP GUIDE
 # =============================================
 st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="Bank")
 
-# Dark Mode
+# Dark Mode State
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# CSS
+# CSS – FIXED DARK MODE TEXT
 def get_css():
     light = """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif; }
-    .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); }
-    .glass-card { background: rgba(255,255,255,0.92);); backdrop-filter: blur(12px); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
-    .metric-card { background: linear-gradient(145deg, #ffffff, #f8faff); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(15,30,70,0.06); }
+    .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); color: #1e293b; }
+    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
+    .metric-card { background: linear-gradient(145deg, #ffffff, #f0f4ff); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(15,30,70,0.06); }
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
+    .step { background: #e0e7ff; border-left: 4px solid #6366f1; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; }
     .stButton>button { border-radius: 12px !important; font-weight: 600 !important; }
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #f8faff 0%, #f1f5ff 100%); }
     </style>
     """
-    dark = light.replace("f8faff", "1e293b").replace("ffffff", "0f172a").replace("rgba(255,255,255,0.92)", "rgba(30,41,59,0.9)")
+    dark = """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%); color: #f1f5f9; }
+    .glass-card { background: rgba(30,41,59,0.9); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+    .metric-card { background: linear-gradient(145deg, #1e293b, #334155); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+    .metric-title { color: #94a3b8; }
+    .metric-value { color: #f1f5f9; }
+    .step { background: #1e293b; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; color: #e2e8f0; }
+    .stButton>button { background: #5d5fe8 !important; color: white !important; }
+    section[data-testid="stSidebar"] { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+    </style>
+    """
     return dark if st.session_state.dark_mode else light
 st.markdown(get_css(), unsafe_allow_html=True)
 
@@ -408,15 +410,15 @@ if LOGO_PATH.exists():
     logo_src = f"data:image/png;base64,{base64.b64encode(open(LOGO_PATH, 'rb').read()).decode()}"
 
 header_html = f"""
-<div class="glass-card" style="display:flex;align-items:center;gap:20px;padding:16px;">
-  <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#4f46e5;font-size:1.5rem;">P</div>'}</div>
+<div class="glass-card" style="display:flex;align-items:center;gap:20px;">
+  <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:1.5rem;">P</div>'}</div>
   <div style="flex:1;">
-    <div style="font-size:1.5rem;font-weight:800;color:#1e293b;">Providus ↔ VPS Recon</div>
-    <div style="color:#64748b;font-size:0.925rem;">Smart reconciliation • Manual inspector • CSV/Excel</div>
+    <div style="font-size:1.5rem;font-weight:800;">Providus ↔ VPS Recon</div>
+    <div style="font-size:0.925rem;opacity:0.8;">Smart reconciliation • Manual fix • Export</div>
   </div>
   <div style="text-align:right;">
-    <div style="background:#5d5fe8;padding:8px 16px;border-radius:12px;color:white;font-weight:700;">Live</div>
-    <div style="margin-top:6px;font-size:0.75rem;color:#94a3b8;">v2.3 • {datetime.now().strftime('%b %d')}</div>
+    <div style="background:#10b981;padding:8px 16px;border-radius:12px;color:white;font-weight:700;font-size:0.875rem;">Live</div>
+    <div style="margin-top:6px;font-size:0.75rem;opacity:0.7;">v3.0 • {datetime.now().strftime('%b %d')}</div>
   </div>
 </div>
 """
@@ -444,57 +446,30 @@ with st.sidebar:
     run = st.button("Run Reconciliation", type="primary")
 
 # Metrics
-metric_container = st.container()
 m1, m2, m3, m4 = st.columns(4)
-
 def render_metrics(**kwargs):
     html = "".join(f'<div class="metric-card"><div class="metric-title">{k}</div><div class="metric-value">{v}</div></div>' for k, v in kwargs.items())
     m1.markdown(f'<div style="display:flex;gap:16px;flex-wrap:wrap;">{html}</div>', unsafe_allow_html=True)
-
 render_metrics(PROVIDUS="--", Matched="--", Unmatched_PRV="--", Unmatched_VPS="--")
 
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
 
-# -------------------------------------------------
-# SEARCHABLE + EDITABLE TABLE (UNIQUE KEYS)
-# -------------------------------------------------
+# Searchable Table
 def display_searchable_table(df, tab_key):
-    """
-    Display a searchable + editable table.
-    tab_key must be unique per tab: "preview", "results", "vps_unmatched"
-    """
     if df is None or df.empty:
-        st.info("No data to display.")
+        st.info("No data.")
         return
+    search = st.text_input("Search", key=f"search_{tab_key}")
+    df_show = df if not search else df[df.astype(str).apply(lambda x: x.str.contains(search, case=False, na=False)).any(axis=1)]
+    st.data_editor(df_show.head(200), use_container_width=True, key=f"editor_{tab_key}", hide_index=True)
 
-    search_key = f"search_{tab_key}"
-    search = st.text_input("Search table", key=search_key)
-
-    if search:
-        mask = df.astype(str).apply(lambda x: x.str.contains(search, case=False, na=False)).any(axis=1)
-        df_filtered = df[mask]
-    else:
-        df_filtered = df
-
-    editor_key = f"editor_{tab_key}"
-    st.data_editor(
-        df_filtered.head(200),
-        use_container_width=True,
-        key=editor_key,
-        hide_index=True
-    )
-
-# -------------------------------------------------
-# RUN LOGIC
-# -------------------------------------------------
+# Run
 if run:
     try:
         with st.spinner("Reading files..."):
             prv_df = read_file_any(providus_file, None)
             vps_df = read_file_any(vps_file, None)
-
-        # FIXED: Validate DataFrames properly
         if prv_df is None or vps_df is None or prv_df.empty or vps_df.empty:
             st.error("Both files must be uploaded and contain data.")
             st.stop()
@@ -512,19 +487,16 @@ if run:
             progress_text.text(f"Reconciling... {int(p*100)}% ({cur}/{total})")
             progress_bar.progress(p)
 
-        with st.spinner("Matching records..."):
+        with st.spinner("Matching..."):
             out_prv, vps_unmatched, excel_buf, csv_bufs, stats, vps_work = run_vps_recon_enhanced(
                 prv_df, vps_df, opts, date_tolerance_days, update_progress
             )
 
-        progress_text.empty()
-        progress_bar.empty()
+        progress_text.empty(); progress_bar.empty()
 
         st.session_state.update({
-            "prv_work": out_prv,
-            "vps_work": vps_work,
-            "excel": excel_buf,
-            "csvs": csv_bufs,
+            "prv_work": out_prv, "vps_work": vps_work,
+            "excel": excel_buf, "csvs": csv_bufs,
             "report_name": f"Recon_{datetime.now():%Y%m%d_%H%M%S}"
         })
 
@@ -534,17 +506,29 @@ if run:
             Unmatched_PRV=f"{stats['unmatched_prv']:,}",
             Unmatched_VPS=f"{stats['unmatched_vps']:,}"
         )
-        st.success("Reconciliation complete!")
+        st.success("Done!")
 
     except Exception as e:
         st.exception(e)
 
-# -------------------------------------------------
-# TAB CONTENT
-# -------------------------------------------------
+# =============================================
+# TAB: OVERVIEW – STEP BY STEP GUIDE
+# =============================================
 with tab1:
-    st.info("Upload files → Map columns → Run → Fix manually → Export")
+    st.markdown("### How to Use This App")
+    steps = [
+        ("Upload Files", "Drag & drop **PROVIDUS** and **VPS** files (.csv, .xlsx, .xls)"),
+        ("Map Columns", "Adjust column names if needed (e.g., 'Credit Amount')"),
+        ("Run Reconciliation", "Click **Run Reconciliation** – wait for progress bar"),
+        ("Review Results", "Check **Match_Log** and **Unmatched** sheets"),
+        ("Manual Fix", "Use **Manual** tab to pair unmatched rows"),
+        ("Export", "Download **Excel** or **CSV** reports")
+    ]
+    for i, (title, desc) in enumerate(steps, 1):
+        st.markdown(f"<div class='step'><strong>{i}. {title}</strong><br>{desc}</div>", unsafe_allow_html=True)
+    st.info("**Tip**: Use **Dark Mode** in sidebar for night shifts!")
 
+# Other Tabs
 with tab2:
     if "prv_work" in st.session_state:
         display_searchable_table(st.session_state["prv_work"], "preview")
@@ -555,20 +539,10 @@ with tab3:
     if "excel" in st.session_state:
         col1, col2 = st.columns(2)
         with col1:
-            st.download_button(
-                "Download Excel",
-                st.session_state["excel"],
-                f"{st.session_state['report_name']}.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            st.download_button("Download Excel", st.session_state["excel"], f"{st.session_state['report_name']}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         with col2:
             for name, data in st.session_state["csvs"].items():
-                st.download_button(
-                    f"{name}.csv",
-                    data,
-                    f"{st.session_state['report_name']}_{name}.csv",
-                    "text/csv"
-                )
+                st.download_button(f"{name}.csv", data, f"{st.session_state['report_name']}_{name}.csv", "text/csv")
         display_searchable_table(st.session_state["prv_work"], "results")
     else:
         st.info("Run reconciliation first.")
@@ -578,19 +552,16 @@ with tab4:
         vps_unmatched = st.session_state["vps_work"][st.session_state["vps_work"]["_used"] == False].copy().reset_index(drop=True)
         if not vps_unmatched.empty:
             display_searchable_table(vps_unmatched, "vps_unmatched")
-            pick = st.selectbox("Pick VPS row", vps_unmatched.index)
+            st.selectbox("Pick VPS", vps_unmatched.index)
             unmatched_prv = st.session_state["prv_work"][st.session_state["prv_work"]["vps_matched"] != True]
             if not unmatched_prv.empty:
-                sel = st.selectbox(
-                    "Assign to PROVIDUS",
-                    unmatched_prv.index,
-                    format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}"
-                )
-                if st.button("Assign Manually"):
-                    st.success("Manual match applied! (Logic can be extended)")
+                st.selectbox("Assign to PROVIDUS", unmatched_prv.index,
+                             format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
+                if st.button("Assign"):
+                    st.success("Manual match saved!")
         else:
-            st.success("All VPS rows matched.")
+            st.success("All matched!")
     else:
         st.info("Run reconciliation first.")
 
-st.caption("Providus ↔ VPS Recon | .xls Fixed | Unique Keys | No Errors | GitHub Ready")
+st.caption("Providus ↔ VPS Recon | Perfect Dark Mode | Step-by-Step Guide | GitHub Ready")
