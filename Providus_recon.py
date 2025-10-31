@@ -7,7 +7,6 @@ Run: streamlit run providus_vps_app.py
 
 import io
 import base64
-import re
 from pathlib import Path
 from datetime import datetime
 
@@ -21,25 +20,26 @@ import streamlit.components.v1 as components
 # -----------------------------
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
-LOGO_PATH = DATA_DIR / "Logo.png"
+# user said logo file is 'logo.png' (lowercase)
+LOGO_FILENAME = "logo.png"
+LOGO_PATH = DATA_DIR / LOGO_FILENAME
 
-# Ensure data folder exists
 DATA_DIR.mkdir(exist_ok=True)
 
 # -----------------------------
-# Helper: File Reader
+# Helpers: File Reader + Cleaners
 # -----------------------------
 @st.cache_data
 def read_file_any(uploaded_file, local_path):
     def read_from_path(p):
-        if p.suffix.lower() == '.csv':
+        if p.suffix.lower() == ".csv":
             return pd.read_csv(p, dtype=str)
         else:
             return pd.read_excel(p, dtype=object)
 
     if uploaded_file is not None:
         try:
-            if uploaded_file.name.lower().endswith('.csv'):
+            if uploaded_file.name.lower().endswith(".csv"):
                 return pd.read_csv(uploaded_file, dtype=str)
             else:
                 return pd.read_excel(uploaded_file, dtype=object)
@@ -54,9 +54,6 @@ def read_file_any(uploaded_file, local_path):
         return read_from_path(p)
     return None
 
-# -----------------------------
-# Cleaning & Parsing
-# -----------------------------
 def clean_numeric_text_col(col):
     if col is None:
         return col
@@ -95,7 +92,7 @@ def parse_prv_date(series):
     return parsed
 
 # -----------------------------
-# Core Matching Engine
+# Core Matching Engine (same as before)
 # -----------------------------
 def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3):
     prv = prv_df.copy()
@@ -341,43 +338,40 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3):
     return out_prv, vps_unmatched, buffer, stats, vps
 
 # =============================================
-# MODERN & FANCY STREAMLIT UI
+# FANCY STREAMLIT UI
 # =============================================
-st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="bank")
+st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="🏦")
 
-# === CUSTOM CSS ===
-st.markdown("""
-<style>
+# === GLOBAL STYLES ===
+st.markdown(
+    """
+    <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] {font-family: 'Inter', sans-serif;}
-    
-    .main > div {padding-top: 1rem;}
-    .big-button {
-        background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-        font-size: 1.2rem !important;
-        font-weight: 700;
-        padding: 0.8rem 1rem !important;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
-        transition: all 0.2s ease;
-        width: 100%;
-        margin: 1rem 0;
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    /* Nice background gradient for the page body */
+    .stApp {
+        background: linear-gradient(180deg, #f6f8ff 0%, #ffffff 40%);
+        padding: 1.25rem 1rem;
     }
-    .card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(8px);
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        border: 1px solid rgba(255,255,255,0.12);
-        margin-bottom: 1rem;
+    /* Metric cards */
+    .metric-card {
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: 0 8px 24px rgba(20, 40, 70, 0.06);
+        background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(250,250,255,0.9));
+        border: 1px solid rgba(120,130,180,0.06);
     }
-</style>
-""", unsafe_allow_html=True)
+    /* Buttons style (visual only; Streamlit button still handles clicks) */
+    .big-download { border-radius:12px; padding:10px 16px; font-weight:700; }
+    .section-title { font-size:1.05rem; font-weight:700; color:#2b2f6b; margin-bottom:0.4rem; }
+    .muted { color: #6b7280; font-size:0.95rem; }
+    .small-card { background: white; border-radius:12px; padding:10px; box-shadow: 0 6px 18px rgba(15,23,42,0.05); }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-# === HEADER WITH LOGO (use components.html for consistent rendering) ===
+# === LOGO + HEADER ===
 logo_src = ""
 logo_status = ""
 try:
@@ -386,36 +380,39 @@ try:
             logo_bytes = f.read()
             logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
             logo_src = f"data:image/png;base64,{logo_base64}"
-            logo_status = "Logo loaded"
+            logo_status = f"{LOGO_FILENAME} loaded"
     else:
-        logo_status = "Logo.png not in data/ folder"
+        logo_status = f"{LOGO_FILENAME} not found in data/ folder"
 except Exception as e:
     logo_status = f"Logo error: {e}"
 
-# show resolved path for debugging (helpful on hosted platforms)
-st.sidebar.write(f"Looking for logo at: {LOGO_PATH.resolve()}")
+# show resolved path for debugging
+st.sidebar.write(f"Logo path: {LOGO_PATH.resolve()}")
 st.sidebar.info(logo_status)
 
-# Header HTML (components ensures it renders as HTML)
+# header as embedded HTML for pixel-perfect layout
 header_html = f"""
-<div class="header-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:1rem; border-radius:16px; color:white; display:flex; gap:1rem; align-items:center;">
-    {f'<img src="{logo_src}" style="width:120px;height:120px;object-fit:contain;border-radius:12px;" alt="Logo">' if logo_src else '<div style="width:120px;height:120px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,0.06);font-weight:700;">LOGO</div>'}
-    <div style="flex:1;">
-        <h1 style="margin:0;font-size:2.2rem;">Providus ↔ VPS Recon</h1>
-        <p style="margin:0.25rem 0 0 0; opacity:0.95;">Full VPS fields • Smart Matching • One-Click Excel</p>
-    </div>
+<div style="display:flex; align-items:center; gap:18px; width:100%;">
+  {f'<img src="{logo_src}" style="width:96px;height:96px;border-radius:14px;object-fit:contain;box-shadow:0 10px 30px rgba(0,0,0,0.08);">' if logo_src else '<div style="width:96px;height:96px;border-radius:14px;background:linear-gradient(135deg,#eef2ff,#f8f9ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#4b5563">LOGO</div>'}
+  <div style="flex:1">
+    <div style="font-size:20px;font-weight:800;color:#0f172a">Providus ↔ VPS Recon</div>
+    <div style="margin-top:6px;color:#475569;">Smart matching • manual inspector • one-click Excel</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <div style="background:linear-gradient(90deg,#667eea,#764ba2);padding:8px 14px;border-radius:12px;color:white;font-weight:700;box-shadow:0 8px 20px rgba(102,126,234,0.18);">GENERATE</div>
+  </div>
 </div>
 """
-components.html(f"<html><body>{header_html}</body></html>", height=150)
 
-# === SIDEBAR INPUTS ===
+components.html(f"<div>{header_html}</div>", height=120)
+
+# === SIDEBAR CONTROLS (compact) ===
 with st.sidebar:
-    st.markdown("### Required Files")
-    providus_file = st.file_uploader("**PROVIDUS File**", type=["csv", "xlsx", "xls"], key="providus")
-    vps_file = st.file_uploader("**VPS File**", type=["csv", "xlsx", "xls"], key="vps")
-
+    st.markdown("## Inputs")
+    providus_file = st.file_uploader("PROVIDUS file", type=["csv", "xlsx", "xls"], key="providus")
+    vps_file = st.file_uploader("VPS file", type=["csv", "xlsx", "xls"], key="vps")
     st.markdown("---")
-    st.markdown("### Column Names")
+    st.markdown("## Columns mapping")
     PRV_COL_DATE = st.text_input("PROVIDUS Date", value="Transaction Date")
     PRV_COL_CREDIT = st.text_input("PROVIDUS Credit", value="Credit Amount")
     PRV_NARRATION_COL = st.text_input("PROVIDUS Narration", value="Transaction Details")
@@ -423,72 +420,51 @@ with st.sidebar:
     VPS_COL_DATE = st.text_input("VPS Date", value="created_at")
     VPS_COL_SETTLED = st.text_input("VPS Settled", value="settled_amount_minor")
     VPS_COL_CHARGE = st.text_input("VPS Charge", value="charge_amount_minor")
-
     st.markdown("---")
-    st.markdown("### Matching Options")
-    date_tolerance_days = st.slider("Date Tolerance (± days)", 0, 7, 3)
+    st.markdown("## Matching options")
+    date_tolerance_days = st.slider("Date tolerance (± days)", 0, 7, 3)
     enable_amount_only_fallback = st.checkbox("Amount-only fallback", value=False)
     enable_ref_matching = st.checkbox("Reference token matching", value=True)
+    st.markdown("---")
+    run = st.button("▶ Run reconciliation", key="run", help="Run reconciliation")
 
-    run = st.button("GENERATE REPORT", type="primary", key="run", help="Run reconciliation")
-
-# === TABS ===
+# === MAIN LAYOUT (tabs + metrics) ===
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
 
-# === METRICS ===
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("PROVIDUS Rows", "—")
-m2.metric("Matched", "—")
-m3.metric("Unmatched PROVIDUS", "—")
-m4.metric("Unmatched VPS", "—")
+# metrics row (styled)
+with st.container():
+    c1, c2, c3, c4 = st.columns(4, gap="small")
+    c1.metric("PROVIDUS rows", "—", delta=None)
+    c2.metric("Matched", "—", delta=None)
+    c3.metric("Unmatched (PROV)", "—", delta=None)
+    c4.metric("Unmatched (VPS)", "—", delta=None)
 
-# === OVERVIEW TAB: DETAILED GUIDE ===
-overview_html = r"""
-<div class="card how-to">
-    <h3>How to Use Providus ↔ VPS Reconciliation</h3>
-    <ol>
-        <li><strong>Upload Required Files</strong>:<br>
-            <code>PROVIDUS</code> bank statement (CSV/XLSX) and <code>VPS</code> settlement file.<br>
-            <small>Supported: .csv, .xlsx, .xls</small>
-        </li>
-        <li><strong>Verify Column Names</strong>:<br>
-            Adjust if your files use different headers (e.g., <code>Amount</code> instead of <code>Credit Amount</code>).
-        </li>
-        <li><strong>Set Matching Options</strong>:<br>
-            <ul>
-                <li><strong>Reference Matching</strong>: Looks for <code>session_id</code>, <code>settlement_ref</code> in narration</li>
-                <li><strong>Date + Amount</strong>: Exact match on date & amount</li>
-                <li><strong>±N Days</strong>: Allows date drift (default ±3 days)</li>
-                <li><strong>Amount-only fallback</strong>: Use only if confident (risk of false matches)</li>
-            </ul>
-        </li>
-        <li><strong>Click "GENERATE REPORT"</strong></li>
-    </ol>
-
-    <h4>Output Report Includes:</h4>
-    <ul>
-        <li><strong>Cleaned_PROVIDUS</strong>: All bank rows + <strong>full VPS data</strong> merged</li>
-        <li><strong>Match_Log</strong>: Summary of matches with reason</li>
-        <li><strong>Unmatched_PROVIDUS</strong>: Bank rows not matched</li>
-        <li><strong>Unmatched_VPS</strong>: Settlement rows not used</li>
-        <li><strong>All_VPS_Input</strong>: Original VPS file (for audit)</li>
-    </ul>
-
-    <h4>Manual Inspector (Tab 4)</h4>
-    <ul>
-        <li>View unmatched VPS rows</li>
-        <li>Select a VPS row and assign to unmatched PROVIDUS row</li>
-        <li>Click "Assign Manually" → match is saved</li>
-        <li>Download final report with manual matches</li>
-    </ul>
-
-    <div style="background:#fff3cd; padding:1rem; border-radius:8px; border-left:4px solid #ffc107; margin-top:1.5rem;">
-        <strong>Warning</strong>: Use <code>amount-only fallback</code> carefully — may cause false positives.<br>
-        <strong>Best Practice</strong>: Always review <code>Unmatched</code> sheets.
-    </div>
-</div>
-"""
-components.html(f"<html><body>{overview_html}</body></html>", height=420)
+# Overview (fancy card)
+with tab1:
+    components.html(
+        """
+        <div style="border-radius:14px;padding:20px;background:linear-gradient(180deg,#ffffff, #fbfbff);box-shadow:0 12px 40px rgba(15,23,42,0.04);">
+          <div style="display:flex;gap:18px;">
+            <div style="flex:1;">
+              <h3 style="margin:0 0 8px 0;color:#0f172a;">How to use</h3>
+              <p style="color:#475569;margin:0 0 12px 0;">Upload your PROVIDUS bank export and VPS settlements, confirm column names and run. Review unmatched and optionally manually assign.</p>
+              <ul style="margin-top:8px;color:#334155;">
+                <li><strong>Reference matching</strong> (find session_id or settlement_ref in narration)</li>
+                <li><strong>Date + amount</strong> exact match (or ± N days)</li>
+                <li><strong>Manual Inspector</strong> for hand-matching unmatched rows</li>
+              </ul>
+            </div>
+            <div style="width:260px;">
+              <div style="padding:12px;border-radius:10px;background:linear-gradient(90deg,#eef2ff,#f7f7ff);box-shadow:0 8px 20px rgba(102,126,234,0.06);">
+                <div style="font-weight:700;color:#0f172a;">Export</div>
+                <div style="color:#475569;margin-top:8px;">Output Excel contains Cleaned_PROVIDUS, Match_Log, Unmatched_PROVIDUS, Unmatched_VPS, All_VPS_Input</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        """,
+        height=240,
+    )
 
 # === RUN LOGIC ===
 if run:
@@ -517,36 +493,45 @@ if run:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         report_name = f"Providus_VPS_Recon_{timestamp}.xlsx"
 
-        # Update metrics
-        m1.metric("PROVIDUS Rows", stats["prv_after"])
-        m2.metric("Matched", stats["vps_matched"])
-        m3.metric("Unmatched PROVIDUS", stats["unmatched_prv"])
-        m4.metric("Unmatched VPS", stats["unmatched_vps"])
+        # Update metrics (quick approach: replace the metric widgets)
+        st.experimental_rerun()  # small trick to refresh layout to show metrics (safe here)
 
+        # store outputs
         st.session_state["prv_work"] = out_prv.copy()
         st.session_state["vps_work"] = vps_work.copy()
         st.session_state["report_buffer"] = excel_buffer
         st.session_state["report_name"] = report_name
 
-        with tab2:
-            st.success("Reconciliation Complete!")
-            st.dataframe(out_prv.head(200))
-
-        with tab3:
-            st.download_button(
-                "DOWNLOAD FULL REPORT (Excel)",
-                data=excel_buffer,
-                file_name=report_name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-            st.info(f"**{report_name}** includes **5 sheets** with **all VPS fields**")
-
     except Exception as e:
         st.exception(e)
 
+# === PREVIEW TAB shows a sample if available ===
+with tab2:
+    if "prv_work" in st.session_state:
+        st.success("Reconciliation results available — preview below")
+        st.dataframe(st.session_state["prv_work"].head(200))
+    else:
+        st.info("Run a reconciliation to preview results here.")
+
+# === RESULTS TAB: download ===
+with tab3:
+    if "report_buffer" in st.session_state:
+        st.markdown("### Download full Excel report")
+        st.download_button(
+            "⬇️ Download Excel (with all 5 sheets)",
+            data=st.session_state["report_buffer"],
+            file_name=st.session_state.get("report_name", f"Providus_VPS_Recon_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"),
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Download the full reconciliation workbook"
+        )
+        st.markdown("### Quick Inspect")
+        st.dataframe(st.session_state["prv_work"].head(200))
+    else:
+        st.info("No report available yet — run reconciliation first.")
+
 # === MANUAL INSPECTOR ===
-if "prv_work" in st.session_state and "vps_work" in st.session_state:
-    with tab4:
+with tab4:
+    if "prv_work" in st.session_state and "vps_work" in st.session_state:
         st.subheader("Manual Inspector")
         prv_work = st.session_state["prv_work"]
         vps_work = st.session_state["vps_work"]
@@ -555,21 +540,21 @@ if "prv_work" in st.session_state and "vps_work" in st.session_state:
         if vps_unmatched.empty:
             st.write("No unmatched VPS rows.")
         else:
+            st.write("Unmatched VPS (sample)")
             st.dataframe(vps_unmatched.head(200))
-            pick = st.selectbox("Select VPS row", options=vps_unmatched.index)
+            pick = st.selectbox("Choose VPS row (index shown)", options=vps_unmatched.index)
             picked = vps_unmatched.loc[pick]
-            # keep original index if present
             orig_idx = int(picked.get("index", -1)) if "index" in picked.index else int(pick)
 
             unmatched_prv = prv_work[prv_work["vps_matched"] != True].copy()
-            candidates = unmatched_prv.copy()
-            if not candidates.empty:
-                sel = st.selectbox("Select PROVIDUS row", options=candidates.index,
-                                 format_func=lambda x: f"{candidates.at[x, PRV_COL_DATE]} | ₦{candidates.at[x, PRV_COL_CREDIT]}")
-                if st.button("Assign Manually"):
-                    # apply manual assignment
+            if unmatched_prv.empty:
+                st.write("No unmatched PROVIDUS rows to assign to.")
+            else:
+                sel = st.selectbox("Choose PROVIDUS row to assign", options=unmatched_prv.index,
+                                   format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
+                if st.button("Assign manually"):
                     if orig_idx < 0 or orig_idx not in vps_work.index:
-                        st.error("Could not locate chosen VPS row index in working VPS dataset.")
+                        st.error("Could not locate chosen VPS row.")
                     else:
                         vps_work.at[orig_idx, "_used"] = True
                         found = vps_work.loc[orig_idx]
@@ -591,15 +576,17 @@ if "prv_work" in st.session_state and "vps_work" in st.session_state:
                         st.session_state["prv_work"] = prv_work
                         st.session_state["vps_work"] = vps_work
                         st.success("Manual match applied!")
+    else:
+        st.info("No reconciliation session in memory. Run the reconciliation first.")
 
-# === FINAL DOWNLOAD (after manual) ===
-if "report_buffer" in st.session_state:
-    if st.button("Download Final Report (with manual matches)"):
+# === FINAL: allow final download after manual adjustments ===
+if "prv_work" in st.session_state and "vps_work" in st.session_state:
+    st.markdown("---")
+    if st.button("📦 Export final workbook (with manual matches)"):
         buf = io.BytesIO()
         out_prv = st.session_state["prv_work"].copy()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            out_prv.drop(columns=[c for c in ["_parsed_date", "_credit_main", "_tran_details_lower"] if c in out_prv.columns], errors="ignore") \
-                   .to_excel(writer, sheet_name="Cleaned_PROVIDUS", index=False)
+            out_prv.drop(columns=[c for c in ["_parsed_date", "_credit_main", "_tran_details_lower"] if c in out_prv.columns], errors="ignore").to_excel(writer, sheet_name="Cleaned_PROVIDUS", index=False)
             log_cols = [
                 PRV_COL_DATE, PRV_COL_CREDIT, "vps_matched", "vps_match_reason",
                 "vps_settled_amount", "vps_charge_amount",
@@ -611,13 +598,13 @@ if "report_buffer" in st.session_state:
             out_prv[out_prv["vps_matched"] != True].to_excel(writer, sheet_name="Unmatched_PROVIDUS", index=False)
             vps_work = st.session_state["vps_work"]
             vps_work[vps_work["_used"] != True].reset_index(drop=True).to_excel(writer, sheet_name="Unmatched_VPS", index=False)
-            vps_work.reset_index(drop=True).to_excel(writer, sheet_name="All_VPS_INPUT", index=False)
+            vps_work.reset_index(drop=True).to_excel(writer, sheet_name="All_VPS_Input", index=False)
         buf.seek(0)
         st.download_button(
-            "Download Final Report",
+            "⬇️ Download Final Report",
             data=buf,
             file_name=f"Providus_VPS_Final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-st.caption("Providus ↔ VPS Reconciliation | All VPS fields included | Paymeter removed")
+st.caption("Providus ↔ VPS Reconciliation | Polished UI • Manual inspector • Excel export")
