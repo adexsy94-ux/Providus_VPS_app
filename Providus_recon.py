@@ -363,7 +363,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
     return out_prv, vps_unmatched, excel_buffer, csv_buffers, stats, vps
 
 # =============================================
-# UI: PERFECT DARK MODE + STEP-BY-STEP GUIDE
+# UI: PERFECT DARK MODE + HEADER + CARDS
 # =============================================
 st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="Bank")
 
@@ -371,15 +371,23 @@ st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# CSS – FIXED DARK MODE TEXT
+# CSS – DISTINCT HEADER + CARDS
 def get_css():
     light = """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); color: #1e293b; }
-    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
-    .header-card { background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 100%); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); border: 1px solid rgba(0,0,0,0.05); }
+    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); border: 1px solid rgba(0,0,0,0.05); }
+    .header-card {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: #ffffff !important;
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(15,30,70,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
     .metric-card { background: linear-gradient(145deg, #ffffff, #f0f4ff); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(15,30,70,0.06); }
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
@@ -394,7 +402,15 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%); color: #f1f5f9; }
     .glass-card { background: rgba(30,41,59,0.9); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
-    .header-card { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+    .header-card {
+        background: linear-gradient(135deg, #5d5fe8 0%, #8b5cf6 100%);
+        color: #ffffff !important;
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
     .metric-card { background: linear-gradient(145deg, #1e293b, #334155); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
     .metric-title { color: #94a3b8; }
     .metric-value { color: #f1f5f9; }
@@ -413,14 +429,14 @@ if LOGO_PATH.exists():
 
 header_html = f"""
 <div class="header-card" style="display:flex;align-items:center;gap:20px;">
-  <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:1.5rem;">P</div>'}</div>
+  <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#6366f1;font-size:1.5rem;">P</div>'}</div>
   <div style="flex:1;">
-    <div style="font-size:1.5rem;font-weight:800;">Providus ↔ VPS Recon</div>
-    <div style="font-size:0.925rem;opacity:0.8;">Smart reconciliation • Manual fix • Export</div>
+    <div style="font-size:1.5rem;font-weight:800;">Providus VPS Recon</div>
+    <div style="font-size:0.925rem;opacity:0.9;">Smart reconciliation • Manual fix • Export</div>
   </div>
   <div style="text-align:right;">
     <div style="background:#10b981;padding:8px 16px;border-radius:12px;color:white;font-weight:700;font-size:0.875rem;">Live</div>
-    <div style="margin-top:6px;font-size:0.75rem;opacity:0.7;">v3.0 • {datetime.now().strftime('%b %d')}</div>
+    <div style="margin-top:6px;font-size:0.75rem;opacity:0.8;">v3.0 • {datetime.now().strftime('%b %d')}</div>
   </div>
 </div>
 """
@@ -450,9 +466,8 @@ with st.sidebar:
 # Metrics
 m1, m2, m3, m4 = st.columns(4)
 def render_metrics(metrics_dict):
-    items = list(metrics_dict.items())
     cols = [m1, m2, m3, m4]
-    for col, (title, value) in zip(cols, items):
+    for col, (title, value) in zip(cols, metrics_dict.items()):
         html = f'<div class="metric-card"><div class="metric-title">{title}</div><div class="metric-value">{value}</div></div>'
         col.markdown(html, unsafe_allow_html=True)
 render_metrics({"PROVIDUS": "--", "Matched": "--", "Unmatched_PRV": "--", "Unmatched_VPS": "--"})
@@ -460,7 +475,7 @@ render_metrics({"PROVIDUS": "--", "Matched": "--", "Unmatched_PRV": "--", "Unmat
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
 
-# Searchable Table
+# Searchable Table in Card
 def display_searchable_table(df, tab_key):
     if df is None or df.empty:
         st.info("No data.")
@@ -471,7 +486,7 @@ def display_searchable_table(df, tab_key):
     st.data_editor(df_show.head(200), use_container_width=True, key=f"editor_{tab_key}", hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Run
+# Run Reconciliation
 if run:
     try:
         with st.spinner("Reading files..."):
@@ -519,9 +534,10 @@ if run:
         st.exception(e)
 
 # =============================================
-# TAB: OVERVIEW – STEP BY STEP GUIDE
+# TAB: OVERVIEW
 # =============================================
 with tab1:
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.markdown("### How to Use This App")
     steps = [
         ("Upload Files", "Drag & drop **PROVIDUS** and **VPS** files (.csv, .xlsx, .xls)"),
@@ -534,6 +550,7 @@ with tab1:
     for i, (title, desc) in enumerate(steps, 1):
         st.markdown(f"<div class='step'><strong>{i}. {title}</strong><br>{desc}</div>", unsafe_allow_html=True)
     st.info("**Tip**: Use **Dark Mode** in sidebar for night shifts!")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Other Tabs
 with tab2:
@@ -544,30 +561,34 @@ with tab2:
 
 with tab3:
     if "excel" in st.session_state:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
             st.download_button("Download Excel", st.session_state["excel"], f"{st.session_state['report_name']}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         with col2:
             for name, data in st.session_state["csvs"].items():
                 st.download_button(f"{name}.csv", data, f"{st.session_state['report_name']}_{name}.csv", "text/csv")
+        st.markdown('</div>', unsafe_allow_html=True)
         display_searchable_table(st.session_state["prv_work"], "results")
     else:
         st.info("Run reconciliation first.")
 
 with tab4:
     if "prv_work" in st.session_state:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         vps_unmatched = st.session_state["vps_work"][st.session_state["vps_work"]["_used"] == False].copy().reset_index(drop=True)
         if not vps_unmatched.empty:
             display_searchable_table(vps_unmatched, "vps_unmatched")
-            st.selectbox("Pick VPS", vps_unmatched.index)
+            vps_idx = st.selectbox("Pick VPS", vps_unmatched.index)
             unmatched_prv = st.session_state["prv_work"][st.session_state["prv_work"]["vps_matched"] != True]
             if not unmatched_prv.empty:
-                st.selectbox("Assign to PROVIDUS", unmatched_prv.index,
-                             format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
-                if st.button("Assign"):
+                prv_idx = st.selectbox("Assign to PROVIDUS", unmatched_prv.index,
+                                     format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
+                if st.button("Assign Match"):
                     st.success("Manual match saved!")
         else:
             st.success("All matched!")
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("Run reconciliation first.")
 
