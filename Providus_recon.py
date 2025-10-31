@@ -238,8 +238,8 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
             for delta in range(1, date_tolerance_days + 1):
                 for sign in (-1, 1):
                     alt_date = p_date + pd.Timedelta(days=sign * delta)
-                    alt_idx_lit = vps_by_date_idx.get(alt_date, [])
-                    alt_idx_list = [i for i in alt_idx_lit if not vps.at[i, "_used"]]
+                    alt_idx_list = vps_by_date_idx.get(alt_date, [])
+                    alt_idx_list = [i for i in alt_idx_list if not vps.at[i, "_used"]]
                     if not alt_idx_list:
                         continue
                     alt_df = vps.loc[alt_idx_list].copy()
@@ -371,7 +371,7 @@ st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# CSS – FIXED DARK MODE TEXT + DISTINCT HEADER BACKGROUND
+# CSS – FIXED DARK MODE TEXT + DISTINCT HEADER BACKGROUND + RESPONSIVE BUTTONS
 def get_css():
     light = """
     <style>
@@ -392,8 +392,13 @@ def get_css():
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
     .step { background: #e0e7ff; border-left: 4px solid #6366f1; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; }
-    .stButton>button { border-radius: 12px !important; font-weight: 600 !important; }
+    .stButton>button { border-radius: 12px !important; font-weight: 600 !important; width: 100% !important; padding: 0.75rem 1rem !important; }
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #f8faff 0%, #f1f5ff 100%); }
+    /* Mobile responsiveness for buttons */
+    @media (max-width: 768px) {
+        .stColumns > div { width: 100% !important; }
+        .stButton > button { margin-bottom: 0.5rem !important; }
+    }
     </style>
     """
     dark = """
@@ -415,8 +420,13 @@ def get_css():
     .metric-title { color: #94a3b8; }
     .metric-value { color: #f1f5f9; }
     .step { background: #1e293b; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; color: #e2e8f0; }
-    .stButton>button { background: #5d5fe8 !important; color: white !important; }
+    .stButton>button { background: #5d5fe8 !important; color: white !important; border-radius: 12px !important; font-weight: 600 !important; width: 100% !important; padding: 0.75rem 1rem !important; }
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+    /* Mobile responsiveness for buttons */
+    @media (max-width: 768px) {
+        .stColumns > div { width: 100% !important; }
+        .stButton > button { margin-bottom: 0.5rem !important; }
+    }
     </style>
     """
     return dark if st.session_state.dark_mode else light
@@ -442,7 +452,7 @@ header_html = f"""
 """
 components.html(header_html, height=130)
 
-# Sidebar
+# Sidebar (RESPONSIVE VERSION)
 with st.sidebar:
     st.markdown("## Theme")
     st.session_state.dark_mode = st.toggle("Dark Mode", value=st.session_state.dark_mode)
@@ -462,7 +472,7 @@ with st.sidebar:
     enable_amount_only_fallback = st.checkbox("Amount-only fallback", value=False)
     enable_ref_matching = st.checkbox("Reference token matching", value=True)
 
-    # --- ACTION BUTTONS ---
+    # --- ACTION BUTTONS (Responsive Fix) ---
     col_run, col_pay = st.columns(2)
     with col_run:
         run = st.button("Run Reconciliation", type="primary", use_container_width=True)
