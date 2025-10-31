@@ -14,6 +14,7 @@ from datetime import datetime
 import streamlit as st
 import pandas as pd
 import numpy as np
+import streamlit.components.v1 as components
 
 # -----------------------------
 # Config / Paths
@@ -351,120 +352,61 @@ st.markdown("""
     html, body, [class*="css"] {font-family: 'Inter', sans-serif;}
     
     .main > div {padding-top: 1rem;}
-    .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 16px;
-        color: white;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        height: 140px;
-    }
-    .header-logo {
-        width: 120px;
-        height: 120px;
-        object-fit: contain;
-        border-radius: 12px;
-        background: transparent !important;
-        box-shadow: none;
-    }
-    .header-text {
-        flex: 1;
-        text-align: left;
-    }
-    .header-title {font-size: 2.8rem; font-weight: 700; margin: 0;}
-    .header-subtitle {font-size: 1.1rem; opacity: 0.9; margin-top: 0.5rem;}
-    
     .big-button {
         background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
         color: white;
-        font-size: 1.8rem !important;
+        font-size: 1.2rem !important;
         font-weight: 700;
-        padding: 1.5rem 3rem !important;
+        padding: 0.8rem 1rem !important;
         border: none;
-        border-radius: 16px;
-        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-        transition: all 0.3s ease;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
+        transition: all 0.2s ease;
         width: 100%;
-        margin: 2rem 0;
+        margin: 1rem 0;
     }
-    .big-button:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 30px rgba(79, 172, 254, 0.6);
-    }
-    
     .card {
         background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-        margin-bottom: 1.5rem;
-    }
-    .file-status {
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .stTabs [data-baseweb="tab-list"] {gap: 1rem;}
-    .stTabs [data-baseweb="tab"] {
-        background: #f0f2f6;
+        backdrop-filter: blur(8px);
         border-radius: 12px;
-        padding: 0.8rem 1.5rem;
-        font-weight: 600;
-        color: #555;
+        padding: 1rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        margin-bottom: 1rem;
     }
-    .stTabs [data-baseweb="tab"]:hover {background: #e0e6ed;}
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        color: white;
-    }
-    .how-to ol {padding-left: 1.8rem; margin: 1rem 0;}
-    .how-to li {margin-bottom: 0.8rem; line-height: 1.6;}
-    .how-to code {
-        background: #f0f2f6;
-        padding: 0.2rem 0.4rem;
-        border-radius: 6px;
-        font-family: 'Courier New', monospace;
-        font-size: 0.9em;
-    }
-    .stMetric {background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); border-radius: 12px; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
-    .stTextInput > div > div > input {border-radius: 10px; padding: 0.8rem; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);}
-    .stSlider > div > div > div {background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);}
 </style>
 """, unsafe_allow_html=True)
 
-# === HEADER WITH LOGO ===
+# === HEADER WITH LOGO (use components.html for consistent rendering) ===
 logo_src = ""
 logo_status = ""
-if LOGO_PATH.exists():
-    try:
+try:
+    if LOGO_PATH.exists():
         with open(LOGO_PATH, "rb") as f:
             logo_bytes = f.read()
             logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
             logo_src = f"data:image/png;base64,{logo_base64}"
             logo_status = "Logo loaded"
-    except Exception as e:
-        logo_status = f"Logo error: {e}"
-else:
-    logo_status = "Logo.png not in data/ folder"
+    else:
+        logo_status = "Logo.png not in data/ folder"
+except Exception as e:
+    logo_status = f"Logo error: {e}"
 
-st.markdown(f"""
-<div class="header-container">
-    <img src="{logo_src}" class="header-logo" alt="Logo">
-    <div class="header-text">
-        <h1 class="header-title">Providus ↔ VPS Recon</h1>
-        <p class="header-subtitle">Full VPS fields • Smart Matching • One-Click Excel</p>
+# show resolved path for debugging (helpful on hosted platforms)
+st.sidebar.write(f"Looking for logo at: {LOGO_PATH.resolve()}")
+st.sidebar.info(logo_status)
+
+# Header HTML (components ensures it renders as HTML)
+header_html = f"""
+<div class="header-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:1rem; border-radius:16px; color:white; display:flex; gap:1rem; align-items:center;">
+    {f'<img src="{logo_src}" style="width:120px;height:120px;object-fit:contain;border-radius:12px;" alt="Logo">' if logo_src else '<div style="width:120px;height:120px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,0.06);font-weight:700;">LOGO</div>'}
+    <div style="flex:1;">
+        <h1 style="margin:0;font-size:2.2rem;">Providus ↔ VPS Recon</h1>
+        <p style="margin:0.25rem 0 0 0; opacity:0.95;">Full VPS fields • Smart Matching • One-Click Excel</p>
     </div>
 </div>
-""", unsafe_allow_html=True)
-
-st.sidebar.info(logo_status)
+"""
+components.html(f"<html><body>{header_html}</body></html>", height=150)
 
 # === SIDEBAR INPUTS ===
 with st.sidebar:
@@ -501,52 +443,52 @@ m3.metric("Unmatched PROVIDUS", "—")
 m4.metric("Unmatched VPS", "—")
 
 # === OVERVIEW TAB: DETAILED GUIDE ===
-with tab1:
-    st.markdown(r"""
-    <div class="card how-to">
-        <h3>How to Use Providus ↔ VPS Reconciliation</h3>
-        <ol>
-            <li><strong>Upload Required Files</strong>:<br>
-                <code>PROVIDUS</code> bank statement (CSV/XLSX) and <code>VPS</code> settlement file.<br>
-                <small>Supported: .csv, .xlsx, .xls</small>
-            </li>
-            <li><strong>Verify Column Names</strong>:<br>
-                Adjust if your files use different headers (e.g., <code>Amount</code> instead of <code>Credit Amount</code>).
-            </li>
-            <li><strong>Set Matching Options</strong>:<br>
-                <ul>
-                    <li><strong>Reference Matching</strong>: Looks for <code>session_id</code>, <code>settlement_ref</code> in narration</li>
-                    <li><strong>Date + Amount</strong>: Exact match on date & amount</li>
-                    <li><strong>±N Days</strong>: Allows date drift (default ±3 days)</li>
-                    <li><strong>Amount-only fallback</strong>: Use only if confident (risk of false matches)</li>
-                </ul>
-            </li>
-            <li><strong>Click "GENERATE REPORT"</strong></li>
-        </ol>
+overview_html = r"""
+<div class="card how-to">
+    <h3>How to Use Providus ↔ VPS Reconciliation</h3>
+    <ol>
+        <li><strong>Upload Required Files</strong>:<br>
+            <code>PROVIDUS</code> bank statement (CSV/XLSX) and <code>VPS</code> settlement file.<br>
+            <small>Supported: .csv, .xlsx, .xls</small>
+        </li>
+        <li><strong>Verify Column Names</strong>:<br>
+            Adjust if your files use different headers (e.g., <code>Amount</code> instead of <code>Credit Amount</code>).
+        </li>
+        <li><strong>Set Matching Options</strong>:<br>
+            <ul>
+                <li><strong>Reference Matching</strong>: Looks for <code>session_id</code>, <code>settlement_ref</code> in narration</li>
+                <li><strong>Date + Amount</strong>: Exact match on date & amount</li>
+                <li><strong>±N Days</strong>: Allows date drift (default ±3 days)</li>
+                <li><strong>Amount-only fallback</strong>: Use only if confident (risk of false matches)</li>
+            </ul>
+        </li>
+        <li><strong>Click "GENERATE REPORT"</strong></li>
+    </ol>
 
-        <h4>Output Report Includes:</h4>
-        <ul>
-            <li><strong>Cleaned_PROVIDUS</strong>: All bank rows + <strong>full VPS data</strong> merged</li>
-            <li><strong>Match_Log</strong>: Summary of matches with reason</li>
-            <li><strong>Unmatched_PROVIDUS</strong>: Bank rows not matched</li>
-            <li><strong>Unmatched_VPS</strong>: Settlement rows not used</li>
-            <li><strong>All_VPS_Input</strong>: Original VPS file (for audit)</li>
-        </ul>
+    <h4>Output Report Includes:</h4>
+    <ul>
+        <li><strong>Cleaned_PROVIDUS</strong>: All bank rows + <strong>full VPS data</strong> merged</li>
+        <li><strong>Match_Log</strong>: Summary of matches with reason</li>
+        <li><strong>Unmatched_PROVIDUS</strong>: Bank rows not matched</li>
+        <li><strong>Unmatched_VPS</strong>: Settlement rows not used</li>
+        <li><strong>All_VPS_Input</strong>: Original VPS file (for audit)</li>
+    </ul>
 
-        <h4>Manual Inspector (Tab 4)</h4>
-        <ul>
-            <li>View unmatched VPS rows</li>
-            <li>Select a VPS row and assign to unmatched PROVIDUS row</li>
-            <li>Click "Assign Manually" → match is saved</li>
-            <li>Download final report with manual matches</li>
-        </ul>
+    <h4>Manual Inspector (Tab 4)</h4>
+    <ul>
+        <li>View unmatched VPS rows</li>
+        <li>Select a VPS row and assign to unmatched PROVIDUS row</li>
+        <li>Click "Assign Manually" → match is saved</li>
+        <li>Download final report with manual matches</li>
+    </ul>
 
-        <div style="background:#fff3cd; padding:1rem; border-radius:8px; border-left:4px solid #ffc107; margin-top:1.5rem;">
-            <strong>Warning</strong>: Use <code>amount-only fallback</code> carefully — may cause false positives.<br>
-            <strong>Best Practice</strong>: Always review <code>Unmatched</code> sheets.
-        </div>
+    <div style="background:#fff3cd; padding:1rem; border-radius:8px; border-left:4px solid #ffc107; margin-top:1.5rem;">
+        <strong>Warning</strong>: Use <code>amount-only fallback</code> carefully — may cause false positives.<br>
+        <strong>Best Practice</strong>: Always review <code>Unmatched</code> sheets.
     </div>
-    """, unsafe_allow_html=True)
+</div>
+"""
+components.html(f"<html><body>{overview_html}</body></html>", height=420)
 
 # === RUN LOGIC ===
 if run:
@@ -616,7 +558,8 @@ if "prv_work" in st.session_state and "vps_work" in st.session_state:
             st.dataframe(vps_unmatched.head(200))
             pick = st.selectbox("Select VPS row", options=vps_unmatched.index)
             picked = vps_unmatched.loc[pick]
-            orig_idx = int(picked.get("index", -1))
+            # keep original index if present
+            orig_idx = int(picked.get("index", -1)) if "index" in picked.index else int(pick)
 
             unmatched_prv = prv_work[prv_work["vps_matched"] != True].copy()
             candidates = unmatched_prv.copy()
@@ -624,26 +567,30 @@ if "prv_work" in st.session_state and "vps_work" in st.session_state:
                 sel = st.selectbox("Select PROVIDUS row", options=candidates.index,
                                  format_func=lambda x: f"{candidates.at[x, PRV_COL_DATE]} | ₦{candidates.at[x, PRV_COL_CREDIT]}")
                 if st.button("Assign Manually"):
-                    vps_work.at[orig_idx, "_used"] = True
-                    found = vps_work.loc[orig_idx]
-                    rename_map = {
-                        "id": "vps_id", "session_id": "vps_session_id", "settlement_ref": "vps_settlement_ref",
-                        "transaction_amount_minor": "vps_transaction_amount_minor", "source_acct_name": "vps_source_acct_name",
-                        "source_acct_no": "vps_source_acct_no", "virtual_acct_no": "vps_virtual_acct_no",
-                        "created_at": "vps_created_at", "reversal_session_id": "vps_reversal_session_id",
-                        "settlement_notification_retry_batch_id": "vps_settlement_notification_retry_batch_id"
-                    }
-                    for old, new in rename_map.items():
-                        if old in found:
-                            prv_work.at[sel, new] = found[old]
-                    prv_work.at[sel, "vps_settled_amount"] = found.get(VPS_COL_SETTLED, found["_raw_settled_clean"])
-                    prv_work.at[sel, "vps_charge_amount"] = found.get(VPS_COL_CHARGE, pd.NA)
-                    prv_work.at[sel, "vps_matched"] = True
-                    prv_work.at[sel, "vps_match_reason"] = "MANUAL"
-                    prv_work.at[sel, "vps_matched_vps_index"] = orig_idx
-                    st.session_state["prv_work"] = prv_work
-                    st.session_state["vps_work"] = vps_work
-                    st.success("Manual match applied!")
+                    # apply manual assignment
+                    if orig_idx < 0 or orig_idx not in vps_work.index:
+                        st.error("Could not locate chosen VPS row index in working VPS dataset.")
+                    else:
+                        vps_work.at[orig_idx, "_used"] = True
+                        found = vps_work.loc[orig_idx]
+                        rename_map = {
+                            "id": "vps_id", "session_id": "vps_session_id", "settlement_ref": "vps_settlement_ref",
+                            "transaction_amount_minor": "vps_transaction_amount_minor", "source_acct_name": "vps_source_acct_name",
+                            "source_acct_no": "vps_source_acct_no", "virtual_acct_no": "vps_virtual_acct_no",
+                            "created_at": "vps_created_at", "reversal_session_id": "vps_reversal_session_id",
+                            "settlement_notification_retry_batch_id": "vps_settlement_notification_retry_batch_id"
+                        }
+                        for old, new in rename_map.items():
+                            if old in found:
+                                prv_work.at[sel, new] = found[old]
+                        prv_work.at[sel, "vps_settled_amount"] = found.get(VPS_COL_SETTLED, found.get("_raw_settled_clean", pd.NA))
+                        prv_work.at[sel, "vps_charge_amount"] = found.get(VPS_COL_CHARGE, pd.NA)
+                        prv_work.at[sel, "vps_matched"] = True
+                        prv_work.at[sel, "vps_match_reason"] = "MANUAL"
+                        prv_work.at[sel, "vps_matched_vps_index"] = orig_idx
+                        st.session_state["prv_work"] = prv_work
+                        st.session_state["vps_work"] = vps_work
+                        st.success("Manual match applied!")
 
 # === FINAL DOWNLOAD (after manual) ===
 if "report_buffer" in st.session_state:
@@ -664,7 +611,7 @@ if "report_buffer" in st.session_state:
             out_prv[out_prv["vps_matched"] != True].to_excel(writer, sheet_name="Unmatched_PROVIDUS", index=False)
             vps_work = st.session_state["vps_work"]
             vps_work[vps_work["_used"] != True].reset_index(drop=True).to_excel(writer, sheet_name="Unmatched_VPS", index=False)
-            vps_work.reset_index(drop=True).to_excel(writer, sheet_name="All_VPS_Input", index=False)
+            vps_work.reset_index(drop=True).to_excel(writer, sheet_name="All_VPS_INPUT", index=False)
         buf.seek(0)
         st.download_button(
             "Download Final Report",
