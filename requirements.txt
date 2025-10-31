@@ -4,3 +4,7 @@ numpy
 plotly
 scikit-learn
 openpyxl
+streamlit>=1.28
+pandas>=1.5
+openpyxl>=3.0.10
+xlrd>=2.0.1
