@@ -238,8 +238,8 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
             for delta in range(1, date_tolerance_days + 1):
                 for sign in (-1, 1):
                     alt_date = p_date + pd.Timedelta(days=sign * delta)
-                    alt_idx_list = vps_by_date_idx.get(alt_date, [])
-                    alt_idx_list = [i for i in alt_idx_list if not vps.at[i, "_used"]]
+                    alt_idx_lit = vps_by_date_idx.get(alt_date, [])
+                    alt_idx_list = [i for i in alt_idx_lit if not vps.at[i, "_used"]]
                     if not alt_idx_list:
                         continue
                     alt_df = vps.loc[alt_idx_list].copy()
@@ -379,7 +379,6 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); color: #1e293b; }
     .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
-    /* Distinct header background */
     .header-card {
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         color: #ffffff !important;
@@ -403,7 +402,6 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%); color: #f1f5f9; }
     .glass-card { background: rgba(30,41,59,0.9); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
-    /* Distinct header background (dark) */
     .header-card {
         background: linear-gradient(135deg, #5d5fe8 0%, #8b5cf6 100%);
         color: #ffffff !important;
@@ -463,7 +461,22 @@ with st.sidebar:
     date_tolerance_days = st.slider("Date tolerance (± days)", 0, 7, 3)
     enable_amount_only_fallback = st.checkbox("Amount-only fallback", value=False)
     enable_ref_matching = st.checkbox("Reference token matching", value=True)
-    run = st.button("Run Reconciliation", type="primary")
+
+    # --- ACTION BUTTONS ---
+    col_run, col_pay = st.columns(2)
+    with col_run:
+        run = st.button("Run Reconciliation", type="primary", use_container_width=True)
+    with col_pay:
+        if st.button("PayMeter App", type="secondary", use_container_width=True):
+            js = '''
+            <script>
+                window.open("https://paymeterapp.streamlit.app/", "_blank");
+            </script>
+            '''
+            st.components.v1.html(js, height=0)
+
+    st.markdown("---")
+    st.caption("Providus ↔ VPS Recon v3.0")
 
 # Metrics
 m1, m2, m3, m4 = st.columns(4)
