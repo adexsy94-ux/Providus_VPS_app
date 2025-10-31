@@ -377,7 +377,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
 # =============================================
 # UI: Glassmorphic + Dark Mode
 # =============================================
-st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="Bank")
+st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="💳")
 
 # Dark Mode
 if "dark_mode" not in st.session_state:
@@ -416,7 +416,7 @@ header_html = f"""
   </div>
   <div style="text-align:right;">
     <div style="background:#5d5fe8;padding:8px 16px;border-radius:12px;color:white;font-weight:700;">Live</div>
-    <div style="margin-top:6px;font-size:0.75rem;color:#94a3b8;">v2.1 • {datetime.now().strftime('%b %d')}</div>
+    <div style="margin-top:6px;font-size:0.75rem;color:#94a3b8;">v2.2 • {datetime.now().strftime('%b %d')}</div>
   </div>
 </div>
 """
@@ -473,7 +473,9 @@ if run:
         with st.spinner("Reading files..."):
             prv_df = read_file_any(providus_file, None)
             vps_df = read_file_any(vps_file, None)
-        if not prv_df or not vps_df:
+        # FIXED: Check if DataFrames are None or empty
+        if prv_df is None or vps_df is None or prv_df.empty or vps_df.empty:
+            st.error("Both files must be uploaded and contain data.")
             st.stop()
 
         opts = {
@@ -552,4 +554,4 @@ with tab4:
     else:
         st.info("Run reconciliation first.")
 
-st.caption("Providus ↔ VPS Recon | .xls Fixed | Auto xlrd | GitHub Ready")
+st.caption("Providus ↔ VPS Recon | .xls Fixed | Auto xlrd | No Ambiguous Truth Error | GitHub Ready")
