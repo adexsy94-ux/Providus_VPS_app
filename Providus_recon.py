@@ -1,9 +1,9 @@
 # Providus_recon.py
 # -*- coding: utf-8 -*-
 """
-Providus VPS Reconciliation – v3.0 FINAL
+Providus ↔ VPS Reconciliation – v3.0 FINAL
 Supports: .csv | .xlsx | .xls | Auto xlrd
-Features: Perfect Dark Mode | Step-by-Step Guide | Searchable Tables | Popup-Proof Links
+Features: Perfect Dark Mode | Step-by-Step Guide | Searchable Tables
 Run: streamlit run Providus_recon.py
 """
 
@@ -189,7 +189,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                     chosen_idx = candidate_indices[0]
                     vps.at[chosen_idx, "_used"] = True
                     found = vps.loc[chosen_idx]
-                    prv.at[prv_idx, "vps_settled伐_amount"] = found.get(VPS_COL_SETTLED, found["_raw_settled_clean"])
+                    prv.at[prv_idx, "vps_settled_amount"] = found.get(VPS_COL_SETTLED, found["_raw_settled_clean"])
                     prv.at[prv_idx, "vps_charge_amount"] = found.get(VPS_COL_CHARGE, pd.NA)
                     prv.at[prv_idx, "vps_matched"] = True
                     prv.at[prv_idx, "vps_match_reason"] = f"matched by ref token '{ref_key}'"
@@ -363,15 +363,15 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
     return out_prv, vps_unmatched, excel_buffer, csv_buffers, stats, vps
 
 # =============================================
-# UI: PERFECT DARK MODE + POPUP-PROOF LINKS
+# UI: PERFECT DARK MODE + STEP-BY-STEP GUIDE
 # =============================================
-st.set_page_config(page_title="Providus VPS Recon", layout="wide", page_icon="Bank")
+st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="Bank")
 
 # Dark Mode State
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-# CSS – DISTINCT HEADER + RESPONSIVE BUTTONS
+# CSS – FIXED DARK MODE TEXT + DISTINCT HEADER BACKGROUND
 def get_css():
     light = """
     <style>
@@ -379,6 +379,7 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); color: #1e293b; }
     .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
+    /* Distinct header background */
     .header-card {
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         color: #ffffff !important;
@@ -392,12 +393,8 @@ def get_css():
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
     .step { background: #e0e7ff; border-left: 4px solid #6366f1; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; }
-    .stButton>button, .stLinkButton>button { border-radius: 12px !important; font-weight: 600 !important; width: 100% !important; padding: 0.75rem 1rem !important; }
+    .stButton>button { border-radius: 12px !important; font-weight: 600 !important; }
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #f8faff 0%, #f1f5ff 100%); }
-    @media (max-width: 768px) {
-        .stColumns > div { width: 100% !important; }
-        .stButton>button, .stLinkButton>button { margin-bottom: 0.5rem !important; }
-    }
     </style>
     """
     dark = """
@@ -406,6 +403,7 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%); color: #f1f5f9; }
     .glass-card { background: rgba(30,41,59,0.9); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+    /* Distinct header background (dark) */
     .header-card {
         background: linear-gradient(135deg, #5d5fe8 0%, #8b5cf6 100%);
         color: #ffffff !important;
@@ -420,12 +418,7 @@ def get_css():
     .metric-value { color: #f1f5f9; }
     .step { background: #1e293b; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; color: #e2e8f0; }
     .stButton>button { background: #5d5fe8 !important; color: white !important; }
-    .stLinkButton>button { background: #64748b !important; color: white !important; }
     section[data-testid="stSidebar"] { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
-    @media (max-width: 768px) {
-        .stColumns > div { width: 100% !important; }
-        .stButton>button, .stLinkButton>button { margin-bottom: 0.5rem !important; }
-    }
     </style>
     """
     return dark if st.session_state.dark_mode else light
@@ -440,7 +433,7 @@ header_html = f"""
 <div class="header-card" style="display:flex;align-items:center;gap:20px;">
   <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#6366f1;font-size:1.5rem;">P</div>'}</div>
   <div style="flex:1;">
-    <div style="font-size:1.5rem;font-weight:800;">Providus VPS Recon</div>
+    <div style="font-size:1.5rem;font-weight:800;">Providus ↔ VPS Recon</div>
     <div style="font-size:0.925rem;opacity:0.9;">Smart reconciliation • Manual fix • Export</div>
   </div>
   <div style="text-align:right;">
@@ -451,7 +444,7 @@ header_html = f"""
 """
 components.html(header_html, height=130)
 
-# Sidebar - POPUP BLOCKER PROOF
+# Sidebar
 with st.sidebar:
     st.markdown("## Theme")
     st.session_state.dark_mode = st.toggle("Dark Mode", value=st.session_state.dark_mode)
@@ -470,19 +463,7 @@ with st.sidebar:
     date_tolerance_days = st.slider("Date tolerance (± days)", 0, 7, 3)
     enable_amount_only_fallback = st.checkbox("Amount-only fallback", value=False)
     enable_ref_matching = st.checkbox("Reference token matching", value=True)
-
-    # ACTION BUTTONS
-    st.markdown("### Actions")
-    run = st.button("Run Reconciliation", type="primary", use_container_width=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.link_button("PayMeter App", "https://paymeterapp.streamlit.app/", type="secondary", use_container_width=True)
-    with col2:
-        st.link_button("Analytics", "#", type="secondary", use_container_width=True)  # Replace with real link
-
-    st.markdown("---")
-    st.caption("Providus VPS Recon v3.0")
+    run = st.button("Run Reconciliation", type="primary")
 
 # Metrics
 m1, m2, m3, m4 = st.columns(4)
@@ -555,11 +536,12 @@ if run:
     except Exception as e:
         st.exception(e)
 
-# TAB: OVERVIEW
+# =============================================
+# TAB: OVERVIEW – STEP BY STEP GUIDE
+# =============================================
 with tab1:
     st.markdown("### How to Use This App")
     steps = [
-        
         ("Upload Files", "Drag & drop **PROVIDUS** and **VPS** files (.csv, .xlsx, .xls)"),
         ("Map Columns", "Adjust column names if needed (e.g., 'Credit Amount')"),
         ("Run Reconciliation", "Click **Run Reconciliation** – wait for progress bar"),
@@ -607,6 +589,4 @@ with tab4:
     else:
         st.info("Run reconciliation first.")
 
-st.caption("Providus VPS Recon | Perfect Dark Mode | Popup-Proof Links | Fully Responsive")
-
-
+st.caption("Providus ↔ VPS Recon | Perfect Dark Mode | Step-by-Step Guide | GitHub Ready")
