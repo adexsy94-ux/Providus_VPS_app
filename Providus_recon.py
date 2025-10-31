@@ -1,7 +1,7 @@
 # providus_vps_app.py
 # -*- coding: utf-8 -*-
 """
-Providus ↔ VPS Reconciliation – Fancy UI + Blended Colors + Full Guide
+Providus ↔ VPS Reconciliation – Corrected CSS handling
 Run: streamlit run providus_vps_app.py
 """
 
@@ -20,10 +20,8 @@ import streamlit.components.v1 as components
 # -----------------------------
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
-# user said logo file is 'logo.png' (lowercase)
-LOGO_FILENAME = "logo.png"
+LOGO_FILENAME = "logo.png"   # user indicated lowercase filename
 LOGO_PATH = DATA_DIR / LOGO_FILENAME
-
 DATA_DIR.mkdir(exist_ok=True)
 
 # -----------------------------
@@ -92,7 +90,8 @@ def parse_prv_date(series):
     return parsed
 
 # -----------------------------
-# Core Matching Engine (same as before)
+# Core Matching Engine
+# (unchanged logic; uses globals PRV_COL_*, VPS_COL_* set by UI)
 # -----------------------------
 def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3):
     prv = prv_df.copy()
@@ -338,40 +337,56 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3):
     return out_prv, vps_unmatched, buffer, stats, vps
 
 # =============================================
-# FANCY STREAMLIT UI
+# UI: Correct CSS handling
 # =============================================
 st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="🏦")
 
-# === GLOBAL STYLES ===
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    /* Nice background gradient for the page body */
-    .stApp {
-        background: linear-gradient(180deg, #f6f8ff 0%, #ffffff 40%);
-        padding: 1.25rem 1rem;
-    }
-    /* Metric cards */
-    .metric-card {
-        border-radius: 14px;
-        padding: 12px;
-        box-shadow: 0 8px 24px rgba(20, 40, 70, 0.06);
-        background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(250,250,255,0.9));
-        border: 1px solid rgba(120,130,180,0.06);
-    }
-    /* Buttons style (visual only; Streamlit button still handles clicks) */
-    .big-download { border-radius:12px; padding:10px 16px; font-weight:700; }
-    .section-title { font-size:1.05rem; font-weight:700; color:#2b2f6b; margin-bottom:0.4rem; }
-    .muted { color: #6b7280; font-size:0.95rem; }
-    .small-card { background: white; border-radius:12px; padding:10px; box-shadow: 0 6px 18px rgba(15,23,42,0.05); }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# 1) Inject global CSS with st.markdown (this affects Streamlit DOM)
+GLOBAL_CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-# === LOGO + HEADER ===
+/* Page background */
+.stApp {
+  background: linear-gradient(180deg, #f7f9ff 0%, #ffffff 40%);
+  padding: 18px 18px;
+}
+
+/* Header container placeholder (we render header via components.html) */
+.header-wrap { margin-bottom: 14px; }
+
+/* Metric cards (we will render HTML that uses this) */
+.metric-row { display:flex; gap:14px; margin-bottom:12px; }
+.metric-card {
+  flex:1;
+  padding:12px;
+  border-radius:12px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  box-shadow: 0 8px 24px rgba(20,40,70,0.04);
+  border: 1px solid rgba(80,90,160,0.04);
+}
+.metric-title { font-weight:700; color:#1f2937; font-size:0.92rem; margin-bottom:6px; }
+.metric-value { font-size:1.6rem; font-weight:800; color:#0b1220; }
+
+/* Buttons */
+.stButton>button { border-radius:10px; padding:8px 12px; font-weight:700; }
+.primary-btn { background: linear-gradient(90deg,#667eea,#764ba2); color:white; border:none; }
+
+/* Small card / Overview fallback */
+.small-card { padding:12px; border-radius:12px; background:white; box-shadow:0 6px 20px rgba(15,23,42,0.04); }
+
+/* Manual inspector tweaks */
+.manual-grid { display:flex; gap:14px; align-items:flex-start; }
+.manual-left, .manual-right { flex:1; }
+
+/* Make tables not overflow on small screens */
+[data-testid="stDataFrameContainer"] { overflow-x: auto; }
+</style>
+"""
+st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+
+# 2) Header rendered with components.html (self-contained)
 logo_src = ""
 logo_status = ""
 try:
@@ -386,33 +401,37 @@ try:
 except Exception as e:
     logo_status = f"Logo error: {e}"
 
-# show resolved path for debugging
+# sidebar debug
 st.sidebar.write(f"Logo path: {LOGO_PATH.resolve()}")
 st.sidebar.info(logo_status)
 
-# header as embedded HTML for pixel-perfect layout
+# header HTML (component iframe - isolated, predictable)
 header_html = f"""
-<div style="display:flex; align-items:center; gap:18px; width:100%;">
-  {f'<img src="{logo_src}" style="width:96px;height:96px;border-radius:14px;object-fit:contain;box-shadow:0 10px 30px rgba(0,0,0,0.08);">' if logo_src else '<div style="width:96px;height:96px;border-radius:14px;background:linear-gradient(135deg,#eef2ff,#f8f9ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#4b5563">LOGO</div>'}
-  <div style="flex:1">
-    <div style="font-size:20px;font-weight:800;color:#0f172a">Providus ↔ VPS Recon</div>
-    <div style="margin-top:6px;color:#475569;">Smart matching • manual inspector • one-click Excel</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <div style="background:linear-gradient(90deg,#667eea,#764ba2);padding:8px 14px;border-radius:12px;color:white;font-weight:700;box-shadow:0 8px 20px rgba(102,126,234,0.18);">GENERATE</div>
-  </div>
-</div>
+<html>
+  <body style="margin:0;padding:0">
+    <div style="display:flex;align-items:center;gap:18px;padding:10px;border-radius:12px;">
+      {'<img src="'+logo_src+'" style="width:88px;height:88px;border-radius:12px;object-fit:contain;box-shadow:0 10px 30px rgba(0,0,0,0.06)">' if logo_src else '<div style="width:88px;height:88px;border-radius:12px;background:linear-gradient(90deg,#eef2ff,#fbfbff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#556;letter-spacing:1px;">LOGO</div>'}
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:800;color:#0f172a">Providus ↔ VPS Recon</div>
+        <div style="margin-top:6px;color:#475569">Smart matching • Manual inspector • Excel export</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div style="background:linear-gradient(90deg,#667eea,#764ba2);padding:8px 14px;border-radius:10px;color:white;font-weight:700;box-shadow:0 8px 20px rgba(102,126,234,0.14)">Ready</div>
+        <div style="font-size:12px;color:#94a3b8">v1.0</div>
+      </div>
+    </div>
+  </body>
+</html>
 """
+components.html(header_html, height=120)
 
-components.html(f"<div>{header_html}</div>", height=120)
-
-# === SIDEBAR CONTROLS (compact) ===
+# === SIDEBAR CONTROLS ===
 with st.sidebar:
-    st.markdown("## Inputs")
+    st.markdown("## Files & Mapping")
     providus_file = st.file_uploader("PROVIDUS file", type=["csv", "xlsx", "xls"], key="providus")
     vps_file = st.file_uploader("VPS file", type=["csv", "xlsx", "xls"], key="vps")
     st.markdown("---")
-    st.markdown("## Columns mapping")
+    st.markdown("### Column mapping")
     PRV_COL_DATE = st.text_input("PROVIDUS Date", value="Transaction Date")
     PRV_COL_CREDIT = st.text_input("PROVIDUS Credit", value="Credit Amount")
     PRV_NARRATION_COL = st.text_input("PROVIDUS Narration", value="Transaction Details")
@@ -421,52 +440,81 @@ with st.sidebar:
     VPS_COL_SETTLED = st.text_input("VPS Settled", value="settled_amount_minor")
     VPS_COL_CHARGE = st.text_input("VPS Charge", value="charge_amount_minor")
     st.markdown("---")
-    st.markdown("## Matching options")
+    st.markdown("### Matching options")
     date_tolerance_days = st.slider("Date tolerance (± days)", 0, 7, 3)
     enable_amount_only_fallback = st.checkbox("Amount-only fallback", value=False)
     enable_ref_matching = st.checkbox("Reference token matching", value=True)
     st.markdown("---")
-    run = st.button("▶ Run reconciliation", key="run", help="Run reconciliation")
+    run = st.button("▶ Run reconciliation", key="run", help="Run reconciliation", )
 
-# === MAIN LAYOUT (tabs + metrics) ===
+# === MAIN: tabs & placeholders ===
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
 
-# metrics row (styled)
-with st.container():
-    c1, c2, c3, c4 = st.columns(4, gap="small")
-    c1.metric("PROVIDUS rows", "—", delta=None)
-    c2.metric("Matched", "—", delta=None)
-    c3.metric("Unmatched (PROV)", "—", delta=None)
-    c4.metric("Unmatched (VPS)", "—", delta=None)
+# metrics placeholders (we render HTML inside these so CSS applies)
+metric_cols = st.container()
+with metric_cols:
+    col1, col2, col3, col4 = st.columns(4, gap="small")
+    m1 = col1.empty()
+    m2 = col2.empty()
+    m3 = col3.empty()
+    m4 = col4.empty()
 
-# Overview (fancy card)
+def render_metrics(prv_rows="—", matched="—", unmatched_prv="—", unmatched_vps="—"):
+    html = f"""
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="metric-title">PROVIDUS rows</div>
+        <div class="metric-value">{prv_rows}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Matched</div>
+        <div class="metric-value">{matched}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Unmatched (PROV)</div>
+        <div class="metric-value">{unmatched_prv}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Unmatched (VPS)</div>
+        <div class="metric-value">{unmatched_vps}</div>
+      </div>
+    </div>
+    """
+    m1.markdown(html, unsafe_allow_html=True)
+    # clear other placeholders (they're not used because the HTML uses full row)
+    m2.empty(); m3.empty(); m4.empty()
+
+# initial render
+render_metrics()
+
+# === Overview tab content (self-contained via components.html for pixel-perfect look) ===
 with tab1:
-    components.html(
-        """
-        <div style="border-radius:14px;padding:20px;background:linear-gradient(180deg,#ffffff, #fbfbff);box-shadow:0 12px 40px rgba(15,23,42,0.04);">
-          <div style="display:flex;gap:18px;">
-            <div style="flex:1;">
-              <h3 style="margin:0 0 8px 0;color:#0f172a;">How to use</h3>
-              <p style="color:#475569;margin:0 0 12px 0;">Upload your PROVIDUS bank export and VPS settlements, confirm column names and run. Review unmatched and optionally manually assign.</p>
-              <ul style="margin-top:8px;color:#334155;">
-                <li><strong>Reference matching</strong> (find session_id or settlement_ref in narration)</li>
-                <li><strong>Date + amount</strong> exact match (or ± N days)</li>
-                <li><strong>Manual Inspector</strong> for hand-matching unmatched rows</li>
-              </ul>
-            </div>
-            <div style="width:260px;">
-              <div style="padding:12px;border-radius:10px;background:linear-gradient(90deg,#eef2ff,#f7f7ff);box-shadow:0 8px 20px rgba(102,126,234,0.06);">
-                <div style="font-weight:700;color:#0f172a;">Export</div>
-                <div style="color:#475569;margin-top:8px;">Output Excel contains Cleaned_PROVIDUS, Match_Log, Unmatched_PROVIDUS, Unmatched_VPS, All_VPS_Input</div>
-              </div>
+    overview_component = """
+    <html><body style="margin:0;padding:0">
+      <div style="padding:16px;border-radius:12px;background:linear-gradient(180deg,#ffffff,#fbfdff);box-shadow:0 12px 40px rgba(15,23,42,0.04);">
+        <div style="display:flex;gap:18px;">
+          <div style="flex:1">
+            <h3 style="margin:0 0 8px 0;color:#0f172a">How to use</h3>
+            <p style="margin:0;color:#475569">Upload PROVIDUS and VPS files, confirm column mapping, set matching options and run. Inspect unmatched and optionally assign manually.</p>
+            <ul style="color:#334155;margin-top:10px">
+              <li><strong>Reference matching</strong> - looks for session_id or settlement_ref in narration</li>
+              <li><strong>Date + amount</strong> exact match, with ±N day tolerance</li>
+              <li><strong>Manual inspector</strong> - hand match unmatched rows</li>
+            </ul>
+          </div>
+          <div style="width:320px;">
+            <div style="padding:12px;border-radius:10px;background:linear-gradient(90deg,#eef2ff,#f7f7ff);box-shadow:0 8px 20px rgba(102,126,234,0.06)">
+              <div style="font-weight:700;color:#0f172a">Export</div>
+              <div style="color:#475569;margin-top:8px">Excel includes Cleaned_PROVIDUS, Match_Log, Unmatched_PROVIDUS, Unmatched_VPS, All_VPS_Input</div>
             </div>
           </div>
         </div>
-        """,
-        height=240,
-    )
+      </div>
+    </body></html>
+    """
+    components.html(overview_component, height=240)
 
-# === RUN LOGIC ===
+# === Run logic ===
 if run:
     try:
         with st.spinner("Reading files..."):
@@ -485,54 +533,53 @@ if run:
             "plus_minus_N_days": date_tolerance_days > 0,
             "amount_only_fallback": enable_amount_only_fallback
         }
+
         with st.spinner("Running reconciliation..."):
             out_prv, vps_unmatched, excel_buffer, stats, vps_work = run_vps_recon_enhanced(
                 prv_df, vps_df, opts, date_tolerance_days
             )
 
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        report_name = f"Providus_VPS_Recon_{timestamp}.xlsx"
-
-        # Update metrics (quick approach: replace the metric widgets)
-        st.experimental_rerun()  # small trick to refresh layout to show metrics (safe here)
-
-        # store outputs
+        # store outputs for preview/manual/export
         st.session_state["prv_work"] = out_prv.copy()
         st.session_state["vps_work"] = vps_work.copy()
         st.session_state["report_buffer"] = excel_buffer
-        st.session_state["report_name"] = report_name
+        st.session_state["report_name"] = f"Providus_VPS_Recon_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        # update metrics display using our HTML renderer
+        render_metrics(prv_rows=stats["prv_after"], matched=stats["vps_matched"],
+                       unmatched_prv=stats["unmatched_prv"], unmatched_vps=stats["unmatched_vps"])
+
+        st.success("Reconciliation complete — check Results / Manual tabs")
 
     except Exception as e:
         st.exception(e)
 
-# === PREVIEW TAB shows a sample if available ===
+# === Preview tab ===
 with tab2:
     if "prv_work" in st.session_state:
-        st.success("Reconciliation results available — preview below")
+        st.write("Preview (first 200 rows)")
         st.dataframe(st.session_state["prv_work"].head(200))
     else:
         st.info("Run a reconciliation to preview results here.")
 
-# === RESULTS TAB: download ===
+# === Results tab (download) ===
 with tab3:
     if "report_buffer" in st.session_state:
         st.markdown("### Download full Excel report")
         st.download_button(
-            "⬇️ Download Excel (with all 5 sheets)",
+            "⬇️ Download Excel report (5 sheets)",
             data=st.session_state["report_buffer"],
-            file_name=st.session_state.get("report_name", f"Providus_VPS_Recon_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"),
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            help="Download the full reconciliation workbook"
+            file_name=st.session_state["report_name"],
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        st.markdown("### Quick Inspect")
+        st.markdown("### Quick view")
         st.dataframe(st.session_state["prv_work"].head(200))
     else:
         st.info("No report available yet — run reconciliation first.")
 
-# === MANUAL INSPECTOR ===
+# === Manual inspector ===
 with tab4:
     if "prv_work" in st.session_state and "vps_work" in st.session_state:
-        st.subheader("Manual Inspector")
         prv_work = st.session_state["prv_work"]
         vps_work = st.session_state["vps_work"]
 
@@ -540,9 +587,10 @@ with tab4:
         if vps_unmatched.empty:
             st.write("No unmatched VPS rows.")
         else:
-            st.write("Unmatched VPS (sample)")
+            st.write("Unmatched VPS (sample):")
             st.dataframe(vps_unmatched.head(200))
-            pick = st.selectbox("Choose VPS row (index shown)", options=vps_unmatched.index)
+
+            pick = st.selectbox("Select VPS row (index)", options=vps_unmatched.index)
             picked = vps_unmatched.loc[pick]
             orig_idx = int(picked.get("index", -1)) if "index" in picked.index else int(pick)
 
@@ -550,11 +598,11 @@ with tab4:
             if unmatched_prv.empty:
                 st.write("No unmatched PROVIDUS rows to assign to.")
             else:
-                sel = st.selectbox("Choose PROVIDUS row to assign", options=unmatched_prv.index,
+                sel = st.selectbox("Select PROVIDUS row to assign", options=unmatched_prv.index,
                                    format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
                 if st.button("Assign manually"):
                     if orig_idx < 0 or orig_idx not in vps_work.index:
-                        st.error("Could not locate chosen VPS row.")
+                        st.error("Could not locate chosen VPS row in working VPS dataset.")
                     else:
                         vps_work.at[orig_idx, "_used"] = True
                         found = vps_work.loc[orig_idx]
@@ -577,9 +625,9 @@ with tab4:
                         st.session_state["vps_work"] = vps_work
                         st.success("Manual match applied!")
     else:
-        st.info("No reconciliation session in memory. Run the reconciliation first.")
+        st.info("No reconciliation session in memory. Run reconciliation first.")
 
-# === FINAL: allow final download after manual adjustments ===
+# === Final export after manual adjustments ===
 if "prv_work" in st.session_state and "vps_work" in st.session_state:
     st.markdown("---")
     if st.button("📦 Export final workbook (with manual matches)"):
@@ -607,4 +655,4 @@ if "prv_work" in st.session_state and "vps_work" in st.session_state:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-st.caption("Providus ↔ VPS Reconciliation | Polished UI • Manual inspector • Excel export")
+st.caption("Providus ↔ VPS Reconciliation | CSS fixed • Pixel-accurate header • Styled metrics")
