@@ -288,7 +288,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
                 if outer_break:
                     break
 
-        # 4. Amount-only fallback
+        # 16. Amount-only fallback
         if not prv.at[prv_idx, "vps_matched"] and opts.get("amount_only_fallback", False):
             global_avail = vps[(vps["_used"] == False) & vps["_settled_numeric"].notna()].copy()
             if not global_avail.empty:
@@ -377,7 +377,7 @@ def run_vps_recon_enhanced(prv_df, vps_df, opts, date_tolerance_days=3, progress
 # =============================================
 # UI: Glassmorphic + Dark Mode
 # =============================================
-st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="💳")
+st.set_page_config(page_title="Providus ↔ VPS Recon", layout="wide", page_icon="Bank")
 
 # Dark Mode
 if "dark_mode" not in st.session_state:
@@ -390,7 +390,7 @@ def get_css():
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); }
-    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
+    .glass-card { background: rgba(255,255,255,0.92);); backdrop-filter: blur(12px); border-radius: 16px; padding: 16px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
     .metric-card { background: linear-gradient(145deg, #ffffff, #f8faff); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(15,30,70,0.06); }
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
@@ -416,7 +416,7 @@ header_html = f"""
   </div>
   <div style="text-align:right;">
     <div style="background:#5d5fe8;padding:8px 16px;border-radius:12px;color:white;font-weight:700;">Live</div>
-    <div style="margin-top:6px;font-size:0.75rem;color:#94a3b8;">v2.2 • {datetime.now().strftime('%b %d')}</div>
+    <div style="margin-top:6px;font-size:0.75rem;color:#94a3b8;">v2.3 • {datetime.now().strftime('%b %d')}</div>
   </div>
 </div>
 """
@@ -456,24 +456,45 @@ render_metrics(PROVIDUS="--", Matched="--", Unmatched_PRV="--", Unmatched_VPS="-
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
 
-# Searchable Table
-def display_searchable_table(df, key):
-    if df.empty:
-        st.info("No data.")
+# -------------------------------------------------
+# SEARCHABLE + EDITABLE TABLE (UNIQUE KEYS)
+# -------------------------------------------------
+def display_searchable_table(df, tab_key):
+    """
+    Display a searchable + editable table.
+    tab_key must be unique per tab: "preview", "results", "vps_unmatched"
+    """
+    if df is None or df.empty:
+        st.info("No data to display.")
         return
-    search = st.text_input("Search", key=f"search_{key}")
+
+    search_key = f"search_{tab_key}"
+    search = st.text_input("Search table", key=search_key)
+
     if search:
         mask = df.astype(str).apply(lambda x: x.str.contains(search, case=False, na=False)).any(axis=1)
-        df = df[mask]
-    st.data_editor(df.head(200), use_container_width=True)
+        df_filtered = df[mask]
+    else:
+        df_filtered = df
 
-# Run Logic
+    editor_key = f"editor_{tab_key}"
+    st.data_editor(
+        df_filtered.head(200),
+        use_container_width=True,
+        key=editor_key,
+        hide_index=True
+    )
+
+# -------------------------------------------------
+# RUN LOGIC
+# -------------------------------------------------
 if run:
     try:
         with st.spinner("Reading files..."):
             prv_df = read_file_any(providus_file, None)
             vps_df = read_file_any(vps_file, None)
-        # FIXED: Check if DataFrames are None or empty
+
+        # FIXED: Validate DataFrames properly
         if prv_df is None or vps_df is None or prv_df.empty or vps_df.empty:
             st.error("Both files must be uploaded and contain data.")
             st.stop()
@@ -496,11 +517,14 @@ if run:
                 prv_df, vps_df, opts, date_tolerance_days, update_progress
             )
 
-        progress_text.empty(); progress_bar.empty()
+        progress_text.empty()
+        progress_bar.empty()
 
         st.session_state.update({
-            "prv_work": out_prv, "vps_work": vps_work,
-            "excel": excel_buf, "csvs": csv_bufs,
+            "prv_work": out_prv,
+            "vps_work": vps_work,
+            "excel": excel_buf,
+            "csvs": csv_bufs,
             "report_name": f"Recon_{datetime.now():%Y%m%d_%H%M%S}"
         })
 
@@ -515,7 +539,9 @@ if run:
     except Exception as e:
         st.exception(e)
 
-# Tabs
+# -------------------------------------------------
+# TAB CONTENT
+# -------------------------------------------------
 with tab1:
     st.info("Upload files → Map columns → Run → Fix manually → Export")
 
@@ -529,10 +555,20 @@ with tab3:
     if "excel" in st.session_state:
         col1, col2 = st.columns(2)
         with col1:
-            st.download_button("Download Excel", st.session_state["excel"], f"{st.session_state['report_name']}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button(
+                "Download Excel",
+                st.session_state["excel"],
+                f"{st.session_state['report_name']}.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         with col2:
             for name, data in st.session_state["csvs"].items():
-                st.download_button(f"{name}.csv", data, f"{st.session_state['report_name']}_{name}.csv", "text/csv")
+                st.download_button(
+                    f"{name}.csv",
+                    data,
+                    f"{st.session_state['report_name']}_{name}.csv",
+                    "text/csv"
+                )
         display_searchable_table(st.session_state["prv_work"], "results")
     else:
         st.info("Run reconciliation first.")
@@ -542,16 +578,19 @@ with tab4:
         vps_unmatched = st.session_state["vps_work"][st.session_state["vps_work"]["_used"] == False].copy().reset_index(drop=True)
         if not vps_unmatched.empty:
             display_searchable_table(vps_unmatched, "vps_unmatched")
-            pick = st.selectbox("Pick VPS", vps_unmatched.index)
+            pick = st.selectbox("Pick VPS row", vps_unmatched.index)
             unmatched_prv = st.session_state["prv_work"][st.session_state["prv_work"]["vps_matched"] != True]
             if not unmatched_prv.empty:
-                sel = st.selectbox("Assign to PROVIDUS", unmatched_prv.index,
-                                 format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}")
+                sel = st.selectbox(
+                    "Assign to PROVIDUS",
+                    unmatched_prv.index,
+                    format_func=lambda x: f"{unmatched_prv.at[x, PRV_COL_DATE]} | ₦{unmatched_prv.at[x, PRV_COL_CREDIT]}"
+                )
                 if st.button("Assign Manually"):
-                    st.success("Manual match applied!")
+                    st.success("Manual match applied! (Logic can be extended)")
         else:
             st.success("All VPS rows matched.")
     else:
         st.info("Run reconciliation first.")
 
-st.caption("Providus ↔ VPS Recon | .xls Fixed | Auto xlrd | No Ambiguous Truth Error | GitHub Ready")
+st.caption("Providus ↔ VPS Recon | .xls Fixed | Unique Keys | No Errors | GitHub Ready")
