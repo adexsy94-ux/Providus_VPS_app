@@ -379,6 +379,7 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #f8faff 0%, #ffffff 60%); color: #1e293b; }
     .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); }
+    .header-card { background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 100%); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(15,30,70,0.08); border: 1px solid rgba(0,0,0,0.05); }
     .metric-card { background: linear-gradient(145deg, #ffffff, #f0f4ff); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(15,30,70,0.06); }
     .metric-title { font-weight: 600; color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
     .metric-value { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
@@ -393,6 +394,7 @@ def get_css():
     * { font-family: 'Inter', sans-serif; }
     .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%); color: #f1f5f9; }
     .glass-card { background: rgba(30,41,59,0.9); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+    .header-card { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
     .metric-card { background: linear-gradient(145deg, #1e293b, #334155); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
     .metric-title { color: #94a3b8; }
     .metric-value { color: #f1f5f9; }
@@ -410,7 +412,7 @@ if LOGO_PATH.exists():
     logo_src = f"data:image/png;base64,{base64.b64encode(open(LOGO_PATH, 'rb').read()).decode()}"
 
 header_html = f"""
-<div class="glass-card" style="display:flex;align-items:center;gap:20px;">
+<div class="header-card" style="display:flex;align-items:center;gap:20px;">
   <div>{f'<img src="{logo_src}" style="width:80px;height:80px;border-radius:16px;">' if logo_src else '<div style="width:80px;height:80px;border-radius:16px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:1.5rem;">P</div>'}</div>
   <div style="flex:1;">
     <div style="font-size:1.5rem;font-weight:800;">Providus ↔ VPS Recon</div>
@@ -447,10 +449,13 @@ with st.sidebar:
 
 # Metrics
 m1, m2, m3, m4 = st.columns(4)
-def render_metrics(**kwargs):
-    html = "".join(f'<div class="metric-card"><div class="metric-title">{k}</div><div class="metric-value">{v}</div></div>' for k, v in kwargs.items())
-    m1.markdown(f'<div style="display:flex;gap:16px;flex-wrap:wrap;">{html}</div>', unsafe_allow_html=True)
-render_metrics(PROVIDUS="--", Matched="--", Unmatched_PRV="--", Unmatched_VPS="--")
+def render_metrics(metrics_dict):
+    items = list(metrics_dict.items())
+    cols = [m1, m2, m3, m4]
+    for col, (title, value) in zip(cols, items):
+        html = f'<div class="metric-card"><div class="metric-title">{title}</div><div class="metric-value">{value}</div></div>'
+        col.markdown(html, unsafe_allow_html=True)
+render_metrics({"PROVIDUS": "--", "Matched": "--", "Unmatched_PRV": "--", "Unmatched_VPS": "--"})
 
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Preview", "Results", "Manual"])
@@ -462,7 +467,9 @@ def display_searchable_table(df, tab_key):
         return
     search = st.text_input("Search", key=f"search_{tab_key}")
     df_show = df if not search else df[df.astype(str).apply(lambda x: x.str.contains(search, case=False, na=False)).any(axis=1)]
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.data_editor(df_show.head(200), use_container_width=True, key=f"editor_{tab_key}", hide_index=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Run
 if run:
@@ -500,12 +507,12 @@ if run:
             "report_name": f"Recon_{datetime.now():%Y%m%d_%H%M%S}"
         })
 
-        render_metrics(
-            PROVIDUS=f"{stats['prv_after']:,}",
-            Matched=f"{stats['vps_matched']:,}",
-            Unmatched_PRV=f"{stats['unmatched_prv']:,}",
-            Unmatched_VPS=f"{stats['unmatched_vps']:,}"
-        )
+        render_metrics({
+            "PROVIDUS": f"{stats['prv_after']:,}",
+            "Matched": f"{stats['vps_matched']:,}",
+            "Unmatched_PRV": f"{stats['unmatched_prv']:,}",
+            "Unmatched_VPS": f"{stats['unmatched_vps']:,}"
+        })
         st.success("Done!")
 
     except Exception as e:
